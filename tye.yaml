@@ -1,0 +1,19 @@
+name: play-economy
+services:
+  - name: play-catalog-service
+    project: ./play-catalog/src/Play.Catalog.Service/Play.Catalog.Service.csproj
+    bindings:
+      - protocol: http
+        port: 5100
+
+  - name: play-customer-service
+    project: ./play-customer/src/Play.Customer.Service/Play.Customer.Service.csproj
+    bindings:
+      - protocol: http
+        port: 5300
+
+  - name: play-inventory-service
+    project: ./play-inventory/src/Play.Inventory.Service/Play.Inventory.Service.csproj
+    bindings:
+      - protocol: http
+        port: 5200

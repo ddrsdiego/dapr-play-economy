@@ -1,0 +1,25 @@
+﻿{
+  "iisSettings": {
+    "windowsAuthentication": false,
+    "anonymousAuthentication": true,
+    "iisExpress": {
+      "applicationUrl": "http://localhost:20567",
+      "sslPort": 44319
+    }
+  },
+  "profiles": {
+    "Play.Customer.Service": {
+      "commandName": "Project",
+      "launchBrowser": true,
+      "launchUrl": "swagger",
+      "applicationUrl": "http://localhost:5300",
+      "environmentVariables": {
+        "APP_ID": "play-customer-service",
+        "APP_PORT": "5300",
+        "DAPR_HTTP_PORT": "3300",
+        "DAPR_GRPC_PORT": "53300",
+        "ASPNETCORE_ENVIRONMENT": "Development"
+      }
+    }
+  }
+}
