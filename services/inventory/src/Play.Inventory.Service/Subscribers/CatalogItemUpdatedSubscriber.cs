@@ -5,9 +5,9 @@
     using Microsoft.AspNetCore.Builder;
     using Microsoft.AspNetCore.Routing;
     using Microsoft.Extensions.DependencyInjection;
-    using Common.Application.UseCase;
     using Core.Application.Helpers.Constants;
     using Core.Application.UseCases.CreateCatalogItem;
+    using MediatR;
     using Microsoft.AspNetCore.Http;
 
     public readonly struct CatalogItemUpdated
@@ -37,16 +37,25 @@
                 if (readResult.IsFailure)
                     await context.Response.WriteAsync("", cancellationToken: context.RequestAborted);
 
-                var useCase = context.RequestServices.GetRequiredService<IUseCaseExecutor<CreateCatalogItemReq>>();
-
-                var response = await useCase.SendAsync(new CreateCatalogItemReq(
-                    readResult.Value.CatalogItemId,
-                    readResult.Value.Name,
-                    readResult.Value.Description,
-                    readResult.Value.UnitPrice), context.RequestAborted);
+                var sender = context.RequestServices.GetRequiredService<ISender>();
+                var createCatalogItemReq = readResult.Value.ToCreateCatalogItemReq();
                 
+                var response = await sender.Send(createCatalogItemReq, context.RequestAborted);
                 await response.WriteToPipeAsync(context.Response, context.RequestAborted);
+                
             }).WithTopic(DaprSettings.PubSub.Name, Topics.CatalogItemUpdated);
+        }
+    }
+
+    internal static class CreateCatalogItemReqEx
+    {
+        public static CreateCatalogItemReq ToCreateCatalogItemReq(this CatalogItemUpdated catalogItemUpdated)
+        {
+            return new CreateCatalogItemReq(
+                catalogItemUpdated.CatalogItemId,
+                catalogItemUpdated.Name,
+                catalogItemUpdated.Description,
+                catalogItemUpdated.UnitPrice);
         }
     }
 }

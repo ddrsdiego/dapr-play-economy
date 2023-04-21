@@ -2,33 +2,29 @@
 {
     using Common.Application;
     using Common.Application.Infra.Repositories.Dapr;
-    using Common.Application.UseCase;
     using Domain.AggregateModel.CatalogItemAggregate;
     using Infra.Repositories.CatalogItemRepository;
-    using Microsoft.Extensions.Logging;
+    using MediatR;
 
-    public sealed class CreateCatalogItemUseCase : UseCaseExecutor<CreateCatalogItemReq>
+    public sealed class CreateCatalogItemCommandHandler : IRequestHandler<CreateCatalogItemReq, Response>
     {
         private readonly IDaprStateEntryRepository<CatalogItemData> _catalogItemDaprRepository;
-
-        public CreateCatalogItemUseCase(ILoggerFactory logger,
-            IDaprStateEntryRepository<CatalogItemData> catalogItemDaprRepository)
-            : base(logger.CreateLogger<CreateCatalogItemUseCase>())
+        
+        public CreateCatalogItemCommandHandler(IDaprStateEntryRepository<CatalogItemData> catalogItemDaprRepository)
         {
             _catalogItemDaprRepository = catalogItemDaprRepository;
         }
-
-        protected override async Task<Response> ExecuteSendAsync(CreateCatalogItemReq request,
-            CancellationToken token = new CancellationToken())
+        
+        public async Task<Response> Handle(CreateCatalogItemReq request, CancellationToken cancellationToken)
         {
-            var catalogItemDataResult = await _catalogItemDaprRepository.GetByIdAsync(request.CatalogItemId, token);
+            var catalogItemDataResult = await _catalogItemDaprRepository.GetByIdAsync(request.CatalogItemId, cancellationToken);
             
             var catalogItem = new CatalogItem(request.CatalogItemId, request.Name, request.Description,
                 DateTimeOffset.UtcNow);
-            
+
             var catalogItemData = catalogItem.ToCatalogItemData();
-            await _catalogItemDaprRepository.UpsertAsync(catalogItemData, token);
-            
+            await _catalogItemDaprRepository.UpsertAsync(catalogItemData, cancellationToken);
+
             return Response.Ok();
         }
     }

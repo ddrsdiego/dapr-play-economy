@@ -14,8 +14,8 @@ namespace Play.Catalog.Core.Application.UseCases.UpdateUnitPriceCatalogItem
         public UpdateUnitPriceCatalogItemRequest(string requestId, string catalogItemId, decimal unitPrice)
             : base(requestId)
         {
-            CatalogItemId = catalogItemId;
             UnitPrice = unitPrice;
+            CatalogItemId = catalogItemId;
         }
         
         public string CatalogItemId { get; }

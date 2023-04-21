@@ -39,6 +39,7 @@
                 return BadRequest(response.ErrorResponse);
 
             var createNewCatalogItemResponse = response.Content.GetRaw<CreateNewCatalogItemResponse>();
+            
             return CreatedAtAction(nameof(GetById), new {id = createNewCatalogItemResponse.Id},
                 createNewCatalogItemResponse);
         }

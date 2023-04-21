@@ -4,6 +4,14 @@
     using Common.Application.Infra.Repositories.Dapr;
     using Dapr.Client;
 
+    public sealed class CatalogItemDaprRepository : DaprStateEntryRepository<CatalogItemData>
+    {
+        public CatalogItemDaprRepository(DaprClient daprClient)
+            : base(CatalogItemData.StateStoreName, daprClient)
+        {
+        }
+    }
+    
     [StateEntryName("catalog-item")]
     public class CatalogItemData : DaprStateEntry
     {
@@ -20,13 +28,5 @@
         public string? Description { get; set; }
         public decimal Price { get; set; }
         public DateTimeOffset CreateAt { get; set; }
-    }
-
-    public sealed class CatalogItemDaprRepository : DaprStateEntryRepository<CatalogItemData>
-    {
-        public CatalogItemDaprRepository(DaprClient daprClient)
-            : base(CatalogItemData.StateStoreName, daprClient)
-        {
-        }
     }
 }

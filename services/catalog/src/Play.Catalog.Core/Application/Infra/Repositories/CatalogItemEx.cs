@@ -9,8 +9,8 @@ namespace Play.Catalog.Core.Application.Infra.Repositories
             return new CatalogItemData(catalogItem.Id)
             {
                 CatalogItemId = catalogItem.Id,
-                CatalogItemName = catalogItem.Description.Name,
-                Description = catalogItem.Description.Value,
+                CatalogItemName = catalogItem.Descriptor.Name,
+                Description = catalogItem.Descriptor.Value,
                 Price = catalogItem.Price.Value,
                 CreateAt = catalogItem.CreateAt,
             };

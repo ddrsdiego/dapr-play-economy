@@ -2,6 +2,7 @@
 {
     using Microsoft.Extensions.Configuration;
     using Microsoft.Extensions.DependencyInjection;
+    using UseCases.CreateCatalogItem;
 
     public static class PlayInventoryServiceContainer
     {
@@ -13,7 +14,7 @@
             services.AddHttpClients();
             services.AddRepositories();
             services.AddOptions(configuration);
-
+            services.AddMediatR(cfg => cfg.RegisterServicesFromAssemblyContaining<CreateCatalogItemCommandHandler>());
             return services;
         }
     }

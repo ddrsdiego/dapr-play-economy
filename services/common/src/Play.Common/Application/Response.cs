@@ -2,6 +2,7 @@
 {
     using System;
     using System.Collections.Generic;
+    using System.Reflection.Metadata.Ecma335;
     using System.Text.Json.Serialization;
     using Microsoft.AspNetCore.Http;
 
@@ -273,10 +274,13 @@
         public static Response Fail(string errorCode, string errorMessage, string requestId) =>
             Fail(new Error(errorCode, errorMessage), requestId);
 
-        public bool HasBodyToWrite =>
-            (StatusCode == StatusCodes.Status200OK 
-             || StatusCode == StatusCodes.Status201Created 
-             | StatusCode == StatusCodes.Status202Accepted)
-            && Content.ValueAsJsonUtf8Bytes is not null;
+        public bool HasBodyToWrite
+        {
+            get
+            {
+                var statusCodeIsSuccessfully = StatusCode is StatusCodes.Status200OK or StatusCodes.Status201Created or StatusCodes.Status202Accepted;
+                return statusCodeIsSuccessfully && Content.HasValue;
+            }
+        }
     }
 }

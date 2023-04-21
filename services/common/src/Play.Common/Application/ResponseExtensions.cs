@@ -5,7 +5,6 @@ namespace Play.Common.Application
     using System.Net.Mime;
     using System.Runtime.CompilerServices;
     using System.Text;
-    using System.Text.Json;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.AspNetCore.Http;

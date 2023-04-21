@@ -36,6 +36,11 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Play.Inventory.Core", "serv
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Play.Inventory.Service", "services\inventory\src\Play.Inventory.Service\Play.Inventory.Service.csproj", "{D49683DB-BB10-4109-AE64-F74FDF68948D}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{1B194075-B6C0-45E2-A401-A4B4020557E2}"
+	ProjectSection(SolutionItems) = preProject
+		docker-compose-infra.yml = docker-compose-infra.yml
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU

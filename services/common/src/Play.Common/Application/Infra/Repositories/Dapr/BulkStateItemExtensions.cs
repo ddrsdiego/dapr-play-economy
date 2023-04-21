@@ -2,6 +2,7 @@
 {
     using System;
     using System.Collections.Generic;
+    using System.IO;
     using System.Text.Json;
     using CSharpFunctionalExtensions;
     using global::Dapr.Client;
@@ -9,13 +10,14 @@
     internal static class BulkStateItemExtensions
     {
         public static bool TryDeserializeValue<TEntry>(this BulkStateItem bulkStateItem, string originalKey,
-            IDictionary<string, Result<TEntry>> results, out TEntry entity)
+            IDictionary<string, Result<TEntry>> results, out TEntry entity) where TEntry : IDaprStateEntry
         {
             entity = default;
 
             try
             {
-                entity = JsonSerializer.Deserialize<TEntry>(bulkStateItem.Value);
+                entity = JsonSerializer.Deserialize<TEntry>(bulkStateItem.Value,
+                    DaprStateEntryRepository<TEntry>.JsonSerializerOptions);
             }
             catch (Exception e)
             {

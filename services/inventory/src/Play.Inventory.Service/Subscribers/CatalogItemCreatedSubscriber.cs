@@ -40,7 +40,6 @@ namespace Play.Inventory.Service.Subscribers
                 {
                     var error = new Error("", "");
                     var response = Response.Fail(error);
-
                     await response.WriteToPipeAsync(context.Response);
                 }
 
@@ -52,7 +51,6 @@ namespace Play.Inventory.Service.Subscribers
                     catalogItemCreated.Value.Description);
 
                 await catalogItemDaprRepository.UpsertAsync(newCatalogItem.ToCatalogItemData());
-
                 await context.Response.WriteAsJsonAsync(new OkResult(), cancellationToken: context.RequestAborted);
             }).WithTopic(DaprSettings.PubSub.Name, Topics.CatalogItemCreated);
         }

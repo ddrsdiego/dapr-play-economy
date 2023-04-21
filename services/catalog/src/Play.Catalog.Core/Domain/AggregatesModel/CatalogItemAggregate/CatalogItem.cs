@@ -18,18 +18,18 @@
             : base(id)
         {
             Price = new UnitPrice(price);
-            Description = new CatalogItemDescription(name, description);
+            Descriptor = new CatalogItemDescription(name, description);
             CreateAt = createAt;
         }
 
         public static CatalogItem Default => new();
-        public CatalogItemDescription Description { get; private set; }
+        public CatalogItemDescription Descriptor { get; private set; }
         public UnitPrice Price { get; private set; }
         public DateTimeOffset CreateAt { get; }
 
         public void UpdateDescription(CatalogItemDescription newDescription)
         {
-            Description = newDescription;
+            Descriptor = newDescription;
         }
 
         public void UpdateUnitePrice(decimal price) => UpdateUnitePrice(new UnitPrice(price));

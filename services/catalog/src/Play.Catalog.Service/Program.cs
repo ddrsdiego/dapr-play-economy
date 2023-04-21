@@ -5,7 +5,6 @@ namespace Play.Catalog.Service
     using Common.Api;
     using Core.Application.IoC;
     using Core.Application.UseCases.CreateNewCatalogItem;
-    using MediatR;
     using Microsoft.AspNetCore.Hosting;
     using Microsoft.Extensions.DependencyInjection;
     using Microsoft.Extensions.Hosting;
@@ -16,11 +15,14 @@ namespace Play.Catalog.Service
 
         private static IHostBuilder CreateHostBuilder(string[] args) =>
             Host.CreateDefaultBuilder(args)
+                .UseSerilogCustom()
                 .ConfigureWebHostDefaults(webBuilder => { webBuilder.UseStartup<Startup>(); })
                 .ConfigureServices((context, services) =>
                 {
+                    services.AddMediatR(cfg =>
+                        cfg.RegisterServicesFromAssemblyContaining<CreateNewCatalogItemCommandHandler>());
+
                     services.AddSwaggerVersioning();
-                    services.AddMediatR(typeof(CreateNewCatalogItemCommandHandler));
                     services.AddDaprStateEntryRepositories();
                     services.AddDaprClient(configure => configure.UseJsonSerializationOptions(new JsonSerializerOptions
                     {

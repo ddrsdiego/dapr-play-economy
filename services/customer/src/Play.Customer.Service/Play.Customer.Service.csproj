@@ -4,11 +4,13 @@
         <TargetFramework>net7.0</TargetFramework>
         <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
         <LangVersion>11</LangVersion>
+        <UserSecretsId>1fb38eef-68f4-4fda-9f67-e954722eb1ae</UserSecretsId>
     </PropertyGroup>
 
     <ItemGroup>
       <PackageReference Include="Ardalis.ApiEndpoints" Version="4.0.1" />
       <PackageReference Include="Dapr.AspNetCore" Version="1.9.0" />
+      <PackageReference Include="MediatR" Version="12.0.1" />
       <PackageReference Include="Microsoft.AspNetCore.Mvc.Versioning" Version="5.0.0" />
       <PackageReference Include="Microsoft.AspNetCore.Mvc.Versioning.ApiExplorer" Version="5.0.0" />
       <PackageReference Include="Swashbuckle.AspNetCore" Version="6.4.0" />
@@ -20,7 +22,7 @@
     </ItemGroup>
 
     <ItemGroup>
-      <Content Include="..\..\.dockerignore">
+      <Content Include="..\..\..\..\.dockerignore">
         <Link>.dockerignore</Link>
       </Content>
     </ItemGroup>

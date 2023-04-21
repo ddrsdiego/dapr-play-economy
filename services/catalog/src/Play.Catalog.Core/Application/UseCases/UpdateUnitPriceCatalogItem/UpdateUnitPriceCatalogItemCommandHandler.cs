@@ -44,8 +44,8 @@ namespace Play.Catalog.Core.Application.UseCases.UpdateUnitPriceCatalogItem
             var data = catalogItem.ToCatalogItemData();
             await _daprStateEntryRepository.UpsertAsync(data, cancellationToken);
 
-            var catalogItemUpdated = new CatalogItemUpdated(catalogItem.Id, catalogItem.Description.Name,
-                catalogItem.Description.Value,
+            var catalogItemUpdated = new CatalogItemUpdated(catalogItem.Id, catalogItem.Descriptor.Name,
+                catalogItem.Descriptor.Value,
                 catalogItem.Price.Value);
 
             _ = _daprClient.PublishEventAsync(DaprParameters.PubSubName, Topics.CatalogItemUpdated,

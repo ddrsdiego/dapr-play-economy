@@ -1,11 +1,8 @@
 ﻿namespace Play.Customer.Core.Application.IoC
 {
     using System.Text.Json;
-    using Common.Application.UseCase;
-    using MediatR;
     using Microsoft.Extensions.Configuration;
     using Microsoft.Extensions.DependencyInjection;
-    using UseCases.GetCustomerById;
     using UseCases.RegisterNewCustomer;
 
     public static class PlayCustomerServiceContainer
@@ -22,8 +19,7 @@
             }));
 
             services.AddRepositories(configuration);
-            services.AddMediatR(typeof(GetCustomerByIdRequest));
-            services.AddMediatR(typeof(IdentifiedCommand<RegisterNewCustomerRequest>));
+            services.AddMediatR(cfg => cfg.RegisterServicesFromAssemblyContaining<RegisterNewCustomerCommandHandler>());
             return services;
         }
     }

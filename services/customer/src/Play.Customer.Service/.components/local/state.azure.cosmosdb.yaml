@@ -1,0 +1,16 @@
+#apiVersion: dapr.io/v1alpha1
+#kind: Component
+#metadata:
+#  name: play-customer-state-store
+#spec:
+#  type: state.azure.cosmosdb
+#  version: v1
+#  metadata:
+#    - name: url
+#      value: "https://play-economy-play-customer.documents.azure.com:443/"
+#    - name: masterKey
+#      value: #
+#    - name: database
+#      value: "db-customers"
+#    - name: collection
+#      value: "customers"

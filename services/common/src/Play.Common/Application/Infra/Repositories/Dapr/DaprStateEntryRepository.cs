@@ -4,6 +4,7 @@
     using System.Collections.ObjectModel;
     using System.Linq;
     using System.Text.Json;
+    using System.Text.Json.Serialization;
     using System.Threading;
     using System.Threading.Tasks;
     using CSharpFunctionalExtensions;
@@ -13,11 +14,22 @@
         where TEntry : IDaprStateEntry
     {
         private readonly DaprClient _daprClient;
-
+        
         protected DaprStateEntryRepository(string stateStoreName, DaprClient daprClient)
         {
             StateStoreName = stateStoreName;
             _daprClient = daprClient;
+        }
+
+        public static readonly JsonSerializerOptions JsonSerializerOptions;
+        static DaprStateEntryRepository()
+        {
+            JsonSerializerOptions = new JsonSerializerOptions
+            {
+                DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
+                PropertyNameCaseInsensitive = true,
+                PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+            };
         }
 
         private string StateStoreName { get; }
@@ -76,6 +88,7 @@
 
             var bulkStateItems = _daprClient.GetBulkStateItemsByKeys(StateStoreName, keys, cancellationToken);
             var results = new Dictionary<string, Result<TEntry>>(bulkStateItems.Count);
+            
             foreach (var bulkStateItem in bulkStateItems)
             {
                 var key = keys.Single(x => x.FormattedKey == bulkStateItem.Key);
@@ -84,7 +97,7 @@
 
                 if (bulkStateItem.TryDeserializeValue(key.OriginalKey, results, out var entity))
                     continue;
-                
+
                 results.Add(key.OriginalKey, Result.Success(entity));
             }
 
@@ -92,18 +105,20 @@
                 new ReadOnlyDictionary<string, Result<TEntry>>(results));
         }
 
-        private Task InternalUpsertAsync(IReadOnlyCollection<TEntry> entities, CancellationToken cancellationToken)
+        private Task InternalUpsertAsync(IReadOnlyList<TEntry> entities, CancellationToken cancellationToken)
         {
             var requests = new List<StateTransactionRequest>(entities.Count);
 
             if (!StateEntryNameManager.TryExtractName<TEntry>(out var stateEntryName))
                 stateEntryName = typeof(TEntry).Name;
 
-            foreach (var entity in entities)
+            for (var index = 0; index < entities.Count; index++)
             {
-                var value = JsonSerializer.SerializeToUtf8Bytes(entity);
-                var key = KeyFormatterHelper.ConstructStateStoreKey(stateEntryName, entity.StateEntryKey);
+                var entity = entities[index];
 
+                var value = JsonSerializer.SerializeToUtf8Bytes(entity, JsonSerializerOptions);
+                var key = KeyFormatterHelper.ConstructStateStoreKey(stateEntryName, entity.StateEntryKey);
+                
                 requests.Add(new StateTransactionRequest(key, value, StateOperationType.Upsert));
             }
 
