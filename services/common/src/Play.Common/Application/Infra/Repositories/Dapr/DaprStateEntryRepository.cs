@@ -14,7 +14,7 @@
         where TEntry : IDaprStateEntry
     {
         private readonly DaprClient _daprClient;
-        
+
         protected DaprStateEntryRepository(string stateStoreName, DaprClient daprClient)
         {
             StateStoreName = stateStoreName;
@@ -22,6 +22,7 @@
         }
 
         public static readonly JsonSerializerOptions JsonSerializerOptions;
+
         static DaprStateEntryRepository()
         {
             JsonSerializerOptions = new JsonSerializerOptions
@@ -60,8 +61,9 @@
         /// <returns></returns>
         public async Task<Result<TEntry>> GetByIdAsync(string id, CancellationToken cancellationToken = default)
         {
+            //TODO: Melhorar mensagem de erro e cache miss
             var result = await GetByIdAsync(new[] {id}, cancellationToken);
-            return result[id];
+            return result.Count == 0 ? Result.Failure<TEntry>("Item Not Found") : result[id];
         }
 
         /// <summary>
@@ -87,8 +89,8 @@
             }
 
             var bulkStateItems = _daprClient.GetBulkStateItemsByKeys(StateStoreName, keys, cancellationToken);
-            var results = new Dictionary<string, Result<TEntry>>(bulkStateItems.Count);
-            
+            var results = new Dictionary<string, Result<TEntry>>(ids.Count);
+
             foreach (var bulkStateItem in bulkStateItems)
             {
                 var key = keys.Single(x => x.FormattedKey == bulkStateItem.Key);
@@ -101,8 +103,7 @@
                 results.Add(key.OriginalKey, Result.Success(entity));
             }
 
-            return Task.FromResult<IReadOnlyDictionary<string, Result<TEntry>>>(
-                new ReadOnlyDictionary<string, Result<TEntry>>(results));
+            return Task.FromResult<IReadOnlyDictionary<string, Result<TEntry>>>(new ReadOnlyDictionary<string, Result<TEntry>>(results));
         }
 
         private Task InternalUpsertAsync(IReadOnlyList<TEntry> entities, CancellationToken cancellationToken)
@@ -118,7 +119,7 @@
 
                 var value = JsonSerializer.SerializeToUtf8Bytes(entity, JsonSerializerOptions);
                 var key = KeyFormatterHelper.ConstructStateStoreKey(stateEntryName, entity.StateEntryKey);
-                
+
                 requests.Add(new StateTransactionRequest(key, value, StateOperationType.Upsert));
             }
 

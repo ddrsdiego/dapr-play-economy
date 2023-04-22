@@ -12,6 +12,8 @@
     /// </summary>
     public struct ResponseContent
     {
+        private static readonly SerializerOptions SerializerOptions;
+
         private readonly object _sync;
         private Type InputType { get; }
         private string ContentAsJsonString { get; set; }
@@ -28,6 +30,15 @@
             JsonSerializerOptions = serializerOptions.GetOptions();
         }
 
+        static ResponseContent()
+        {
+            SerializerOptions = new SerializerOptions();
+            SerializerOptions
+                .IgnoreNullValues(true)
+                .PropertyNameCaseInsensitive(true)
+                .PropertyNamingPolicy(JsonNamingPolicy.CamelCase);
+        }
+
         /// <summary>
         /// Encapsulates the content by passing the content type through generics
         /// </summary>
@@ -36,14 +47,8 @@
         /// <returns></returns>
         public static ResponseContent Create<TContent>(TContent contentData)
         {
-            var serializerOptions = new SerializerOptions();
-            serializerOptions
-                .IgnoreNullValues(true)
-                .PropertyNameCaseInsensitive(true)
-                .PropertyNamingPolicy(JsonNamingPolicy.CamelCase);
-
-            var contentAsJsonString = JsonSerializer.Serialize(contentData, serializerOptions.GetOptions());
-            return new ResponseContent(null, contentAsJsonString, contentData.GetType(), serializerOptions);
+            var contentAsJsonString = JsonSerializer.Serialize(contentData, SerializerOptions.GetOptions());
+            return new ResponseContent(null, contentAsJsonString, contentData.GetType(), SerializerOptions);
         }
 
         /// <summary>
@@ -73,13 +78,7 @@
             if (string.IsNullOrEmpty(contentData))
                 throw new ArgumentNullException(nameof(contentData));
 
-            var serializerOptions = new SerializerOptions();
-            serializerOptions
-                .IgnoreNullValues(true)
-                .PropertyNameCaseInsensitive(true)
-                .PropertyNamingPolicy(JsonNamingPolicy.CamelCase);
-
-            return new ResponseContent(null, contentData, inputType, serializerOptions);
+            return new ResponseContent(null, contentData, inputType, SerializerOptions);
         }
 
         /// <summary>
@@ -96,12 +95,7 @@
             if (inputType is null)
                 throw new ArgumentNullException(nameof(inputType));
 
-            var serializerOptions = new SerializerOptions();
-            serializerOptions
-                .IgnoreNullValues(true)
-                .PropertyNameCaseInsensitive(true)
-                .PropertyNamingPolicy(JsonNamingPolicy.CamelCase);
-            return new ResponseContent(contentData, string.Empty, inputType, serializerOptions);
+            return new ResponseContent(contentData, string.Empty, inputType, SerializerOptions);
         }
 
         /// <summary>
@@ -152,9 +146,7 @@
             get
             {
                 if (string.IsNullOrEmpty(ContentAsJsonString))
-                {
                     ContentAsJsonString = JsonSerializer.Serialize(GetRaw(InputType), InputType, JsonSerializerOptions);
-                }
 
                 return ContentAsJsonString;
             }

@@ -30,7 +30,7 @@
 
             try
             {
-                var response = await client.GetAsync($"/api/v1/customers/{userId}");
+                var response = await client.GetAsync($"v1.0/invoke/{PlayCustomerServiceName}/method/api/v1/customers/{userId}");
                 if (response.StatusCode != HttpStatusCode.OK)
                     return Result.Failure<GetCustomerByEmailResponse>("");
 

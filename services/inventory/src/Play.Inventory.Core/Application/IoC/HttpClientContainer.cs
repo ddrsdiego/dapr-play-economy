@@ -8,6 +8,8 @@
 
     public static class HttpClientContainer
     {
+        private const string DaprAppIdHeader = "dapr-app-id";
+
         public static void AddHttpClients(this IServiceCollection services)
         {
             var daprHttpPort = Environment.GetEnvironmentVariable("DAPR_HTTP_PORT");
@@ -16,23 +18,21 @@
             services.AddSingleton<ICustomerClient, CustomerClient>();
 
             var uriSideCar = $"http://localhost:{daprHttpPort}";
+
             services.AddHttpClient(CatalogClient.PlayCatalogServiceName, client =>
                 {
                     client.BaseAddress = new Uri(uriSideCar);
-                    client.DefaultRequestHeaders.TryAddWithoutValidation("dapr-app-id",
-                        CatalogClient.PlayCatalogServiceName);
-                    client.DefaultRequestHeaders.Accept.Add(
-                        new MediaTypeWithQualityHeaderValue(MediaTypeNames.Application.Json));
-                }).SetHandlerLifetime(TimeSpan.FromMinutes(2))
+                    client.DefaultRequestHeaders.TryAddWithoutValidation(DaprAppIdHeader, CatalogClient.PlayCatalogServiceName);
+                    client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue(MediaTypeNames.Application.Json));
+                })
+                .SetHandlerLifetime(TimeSpan.FromMinutes(2))
                 .AddPolicyHandler(Policy.TimeoutAsync<HttpResponseMessage>(5));
 
             services.AddHttpClient(CustomerClient.PlayCustomerServiceName, client =>
             {
                 client.BaseAddress = new Uri(uriSideCar);
-                client.DefaultRequestHeaders.TryAddWithoutValidation("dapr-app-id",
-                    CustomerClient.PlayCustomerServiceName);
-                client.DefaultRequestHeaders.Accept.Add(
-                    new MediaTypeWithQualityHeaderValue(MediaTypeNames.Application.Json));
+                client.DefaultRequestHeaders.TryAddWithoutValidation(DaprAppIdHeader, CustomerClient.PlayCustomerServiceName);
+                client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue(MediaTypeNames.Application.Json));
             });
         }
     }
