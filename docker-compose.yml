@@ -1,4 +1,4 @@
-﻿version: '3.4'
+﻿version: '3.8'
 
 services:
   play-catalog-service:
@@ -10,7 +10,6 @@ services:
       dockerfile: services/catalog/src/Play.Catalog.Service/Dockerfile
     environment:
       - APP_ID=play-catalog-service
-      - APP_PORT=5100
       - DAPR_HTTP_PORT=3100
       - DAPR_GRPC_PORT=4001
       - ASPNETCORE_URLS=http://+:80
@@ -28,10 +27,10 @@ services:
     image: "daprio/daprd:latest"
     command: [ "./daprd",
                "-app-id", "play-catalog-service",
-               "-app-port", "5100",
+               "-app-port", "80",
                "-dapr-http-port", "3100",
-               "-placement-host-address", "placement:50006",
                "-dapr-grpc-port", "4001",
+               "-placement-host-address", "placement:50006",
                "-resources-path", "/components",
                "-log-level","debug" ]
     volumes:
@@ -47,7 +46,6 @@ services:
       dockerfile: services/customer/src/Play.Customer.Service/Dockerfile
     environment:
       - APP_ID=play-customer-service
-      - APP_PORT=5300
       - DAPR_HTTP_PORT=3300
       - DAPR_GRPC_PORT=4003
       - ASPNETCORE_URLS=http://+:80
@@ -65,10 +63,10 @@ services:
     image: "daprio/daprd:latest"
     command: [ "./daprd",
                "-app-id", "play-customer-service",
-               "-app-port", "5300",
+               "-app-port", "80",
                "-dapr-http-port", "3300",
-               "-placement-host-address", "placement:50006",
                "-dapr-grpc-port", "4003",
+               "-placement-host-address", "placement:50006",
                "-resources-path", "/components",
                "-log-level","debug" ]
     volumes:
@@ -84,7 +82,6 @@ services:
       dockerfile: services/inventory/src/Play.Inventory.Service/Dockerfile
     environment:
       - APP_ID=play-inventory-service
-      - APP_PORT=5200
       - DAPR_HTTP_PORT=3200
       - DAPR_GRPC_PORT=4002
       - ASPNETCORE_URLS=http://+:80
@@ -102,10 +99,10 @@ services:
     image: "daprio/daprd:latest"
     command: [ "./daprd",
                "-app-id", "play-inventory-service",
-               "-app-port", "5200",
+               "-app-port", "80",
                "-dapr-http-port", "3200",
-               "-placement-host-address", "placement:50006",
                "-dapr-grpc-port", "4002",
+               "-placement-host-address", "placement:50006",
                "-resources-path", "/components",
                "-log-level","debug" ]
     volumes:
@@ -128,8 +125,8 @@ services:
     image: rabbitmq:3-management-alpine
     restart: unless-stopped
     ports:
-      - 5672:5672
-      - 15672:15672
+      - "5672:5672"
+      - "15672:15672"
     volumes:
       - rabbitmq_data:/var/lib/rabbitmq
     networks:

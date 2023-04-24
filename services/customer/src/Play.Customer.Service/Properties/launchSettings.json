@@ -16,8 +16,9 @@
       "environmentVariables": {
         "APP_ID": "play-customer-service",
         "APP_PORT": "5300",
-        "DAPR_GRPC_PORT": "53300",
-        "ASPNETCORE_ENVIRONMENT": "Local"
+        "DAPR_HTTP_PORT": "3300",
+        "DAPR_GRPC_PORT": "4003",
+        "ASPNETCORE_ENVIRONMENT": "Development"
       }
     }
   }

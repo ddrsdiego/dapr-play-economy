@@ -1,55 +1,39 @@
 ﻿namespace Play.Inventory.Core.Application.Infra.Clients
 {
     using System.Net;
-    using System.Net.Http.Headers;
-    using System.Net.Mime;
     using System.Text.Json;
     using CSharpFunctionalExtensions;
-    using Dapr.Client;
     using Microsoft.Extensions.Logging;
 
     public record GetCustomerByEmailResponse(string CustomerId, string Name, string Email);
 
     public interface ICustomerClient
     {
-        Task<Result<GetCustomerByEmailResponse>> GetCustomerById(string userId);
+        Task<Result<GetCustomerByEmailResponse>> GetCustomerByIdAsync(string userId);
     }
 
-    public class CustomerClient : ICustomerClient
+    internal sealed class CustomerClient : ICustomerClient
     {
         public const string PlayCustomerServiceName = "play-customer-service";
-        private readonly ILogger<CustomerClient> _logger;
-        private readonly IHttpClientFactory _httpClientFactory;
-        private readonly DaprClient _daprClient;
 
-        public CustomerClient(ILogger<CustomerClient> logger, IHttpClientFactory httpClientFactory,
-            DaprClient daprClient)
+        private readonly IHttpClientFactory _httpClientFactory;
+        private readonly ILogger<CustomerClient> _logger;
+
+        public CustomerClient(ILogger<CustomerClient> logger, IHttpClientFactory httpClientFactory)
         {
             _logger = logger;
             _httpClientFactory = httpClientFactory;
-            _daprClient = daprClient;
         }
 
-        public async Task<Result<GetCustomerByEmailResponse>> GetCustomerById(string userId)
+        public async Task<Result<GetCustomerByEmailResponse>> GetCustomerByIdAsync(string userId)
         {
-            // var client = _httpClientFactory.CreateClient(PlayCustomerServiceName);
-
-            var daprHttpPort = Environment.GetEnvironmentVariable("DAPR_HTTP_PORT");
-            
-            var client = _httpClientFactory.CreateClient();
-            client.BaseAddress = new Uri($"http://localhost:{daprHttpPort}");
-            client.DefaultRequestHeaders.Add("dapr-app-id", PlayCustomerServiceName);
-            client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue(MediaTypeNames.Application.Json));
+            var client = _httpClientFactory.CreateClient(PlayCustomerServiceName);
 
             try
             {
-                var rsp = await _daprClient.InvokeMethodAsync<GetCustomerByEmailResponse>(HttpMethod.Get, PlayCustomerServiceName, $"/{userId}");
-                var response =
-                    await client.GetAsync($"v1.0/invoke/{PlayCustomerServiceName}/method/api/v1/customers/{userId}");
+                var response = await client.GetAsync(CustomerClientEndpoints.GetCustomerById(userId));
                 if (response.StatusCode != HttpStatusCode.OK)
-                {
                     return Result.Failure<GetCustomerByEmailResponse>("");
-                }
 
                 var content = await response.Content.ReadAsStringAsync();
                 var customerResponse = JsonSerializer.Deserialize<GetCustomerByEmailResponse>(content,
@@ -63,5 +47,11 @@
                 return Result.Failure<GetCustomerByEmailResponse>(e.Message);
             }
         }
+    }
+
+    internal static class CustomerClientEndpoints
+    {
+        public static string GetCustomerById(string userId) =>
+            $"v1.0/invoke/{CustomerClient.PlayCustomerServiceName}/method/api/v1/customers/{userId}";
     }
 }

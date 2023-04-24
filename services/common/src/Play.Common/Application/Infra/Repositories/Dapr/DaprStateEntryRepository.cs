@@ -59,10 +59,10 @@
         /// <param name="id"></param>
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
-        public async Task<Result<TEntry>> GetByIdAsync(string id, CancellationToken cancellationToken = default)
+        public async Task<Result<TEntry>> GetCustomerByIdAsync(string id, CancellationToken cancellationToken = default)
         {
             //TODO: Melhorar mensagem de erro e cache miss
-            var result = await GetByIdAsync(new[] {id}, cancellationToken);
+            var result = await GetCustomerByIdAsync(new[] {id}, cancellationToken);
             return result.Count == 0 ? Result.Failure<TEntry>("Item Not Found") : result[id];
         }
 
@@ -72,7 +72,7 @@
         /// <param name="ids"></param>
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
-        public Task<IReadOnlyDictionary<string, Result<TEntry>>> GetByIdAsync(string[] ids,
+        public Task<IReadOnlyDictionary<string, Result<TEntry>>> GetCustomerByIdAsync(string[] ids,
             CancellationToken cancellationToken = default) =>
             InternalGetByIdAsync(ids, cancellationToken);
 

@@ -22,7 +22,7 @@
 
         public async Task<Response> Handle(GetCatalogItemByIdRequest request, CancellationToken cancellationToken)
         {
-            var catalogItemData = await _entryRepository.GetByIdAsync(request.Id, cancellationToken);
+            var catalogItemData = await _entryRepository.GetCustomerByIdAsync(request.Id, cancellationToken);
             if (catalogItemData.IsFailure)
                 return Response.Fail(new Error(ItemNotFoundError, $"Item not found in catalog with id {request.Id}"));
 

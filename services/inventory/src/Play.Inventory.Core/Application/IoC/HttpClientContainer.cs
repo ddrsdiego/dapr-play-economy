@@ -17,12 +17,13 @@
 
             var daprHttpPort = Environment.GetEnvironmentVariable("DAPR_HTTP_PORT");
             var uriSideCar = $"http://localhost:{daprHttpPort}";
-           
+
             services.AddHttpClient(CatalogClient.PlayCatalogServiceName, client =>
                 {
                     client.BaseAddress = new Uri(uriSideCar);
                     client.DefaultRequestHeaders.Add(DaprAppIdHeader, CatalogClient.PlayCatalogServiceName);
-                    client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue(MediaTypeNames.Application.Json));
+                    client.DefaultRequestHeaders.Accept.Add(
+                        new MediaTypeWithQualityHeaderValue(MediaTypeNames.Application.Json));
                 })
                 .SetHandlerLifetime(TimeSpan.FromMinutes(2))
                 .AddPolicyHandler(Policy.TimeoutAsync<HttpResponseMessage>(5));
@@ -31,7 +32,8 @@
             {
                 client.BaseAddress = new Uri(uriSideCar);
                 client.DefaultRequestHeaders.Add(DaprAppIdHeader, CustomerClient.PlayCustomerServiceName);
-                client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue(MediaTypeNames.Application.Json));
+                client.DefaultRequestHeaders.Accept.Add(
+                    new MediaTypeWithQualityHeaderValue(MediaTypeNames.Application.Json));
             });
         }
     }

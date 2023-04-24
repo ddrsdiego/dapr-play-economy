@@ -12,9 +12,9 @@
 
         Task UpsertAsync(TEntry[] entities, CancellationToken cancellationToken = default);
 
-        Task<Result<TEntry>> GetByIdAsync(string id, CancellationToken cancellationToken = default);
+        Task<Result<TEntry>> GetCustomerByIdAsync(string id, CancellationToken cancellationToken = default);
 
-        Task<IReadOnlyDictionary<string, Result<TEntry>>> GetByIdAsync(string[] ids,
+        Task<IReadOnlyDictionary<string, Result<TEntry>>> GetCustomerByIdAsync(string[] ids,
             CancellationToken cancellationToken = default);
     }
 }

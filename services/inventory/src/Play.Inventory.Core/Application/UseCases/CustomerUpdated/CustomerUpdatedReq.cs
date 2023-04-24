@@ -35,7 +35,7 @@
         protected override async Task<Response> ExecuteSendAsync(CustomerUpdatedReq request,
             CancellationToken token = default)
         {
-            var customerResult = await _customerDaprRepository.GetByIdAsync(request.CustomerId, token);
+            var customerResult = await _customerDaprRepository.GetCustomerByIdAsync(request.CustomerId, token);
             if (customerResult.IsFailure)
                 Response.Ok();
             

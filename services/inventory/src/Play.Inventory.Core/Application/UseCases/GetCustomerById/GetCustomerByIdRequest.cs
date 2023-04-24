@@ -1,8 +1,9 @@
 ﻿namespace Play.Inventory.Core.Application.UseCases.GetCustomerById
 {
-    using Common.Application.UseCase;
+    using Common.Application;
+    using MediatR;
 
-    public class GetCustomerByIdRequest : UseCaseRequest
+    public readonly struct GetCustomerByIdRequest : IRequest<Response>
     {
         public GetCustomerByIdRequest(string userId) => UserId = userId;
 

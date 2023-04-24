@@ -29,7 +29,7 @@ namespace Play.Catalog.Core.Application.UseCases.UpdateUnitPriceCatalogItem
         public async Task<Response> Handle(UpdateUnitPriceCatalogItemRequest request,
             CancellationToken cancellationToken)
         {
-            var stateEntry = await _daprStateEntryRepository.GetByIdAsync(request.CatalogItemId, cancellationToken);
+            var stateEntry = await _daprStateEntryRepository.GetCustomerByIdAsync(request.CatalogItemId, cancellationToken);
             if (stateEntry.IsFailure)
             {
                 return Response.Fail(new Error(ItemNotFoundError,

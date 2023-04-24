@@ -29,8 +29,8 @@
         protected override async Task<Response> ExecuteSendAsync(GetInventoryItemByUserIdReq request,
             CancellationToken token = new CancellationToken())
         {
-            var getInventoryTask = _inventoryRepository.GetByIdAsync(request.UserId, token);
-            var getCustomerTask = _customerDaprRepository.GetByIdAsync(request.UserId, token);
+            var getInventoryTask = _inventoryRepository.GetCustomerByIdAsync(request.UserId, token);
+            var getCustomerTask = _customerDaprRepository.GetCustomerByIdAsync(request.UserId, token);
             
             await Task.WhenAll(getCustomerTask, getInventoryTask);
 
@@ -42,7 +42,7 @@
             var inventoryItem = inventoryItemResult.Value.ToInventoryItem(customerResult.Value);
 
             var catalogItemIds = inventoryItem.Items.Select(x => x.CatalogItemId).ToArray();
-            var catalogItemsData = await _catalogItemDaprRepository.GetByIdAsync(catalogItemIds, token);
+            var catalogItemsData = await _catalogItemDaprRepository.GetCustomerByIdAsync(catalogItemIds, token);
 
             var catalogItems = catalogItemsData
                 .Select(x => x.Value.Value.ToStateEntry()).ToList().AsReadOnly();

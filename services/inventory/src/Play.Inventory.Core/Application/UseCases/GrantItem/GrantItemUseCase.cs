@@ -7,32 +7,32 @@
     using GetCustomerById;
     using Infra.Repositories.CustomerRepository;
     using Infra.Repositories.InventoryItemRepository;
+    using MediatR;
     using Microsoft.AspNetCore.Http;
     using Microsoft.Extensions.Logging;
 
     public sealed class GrantItemUseCase : UseCaseExecutor<GrantItemRequest>
     {
-        private readonly IUseCaseExecutor<GetCustomerByIdRequest> _getCustomerByIdUseCase;
+        private readonly IMediator _mediator;
         private readonly IDaprStateEntryRepository<InventoryItemData> _inventoryRepository;
 
-        public GrantItemUseCase(ILoggerFactory logger,
-            IDaprStateEntryRepository<InventoryItemData> inventoryRepository,
-            IUseCaseExecutor<GetCustomerByIdRequest> getCustomerByIdUseCase)
+        public GrantItemUseCase(ILoggerFactory logger, IMediator mediator,
+            IDaprStateEntryRepository<InventoryItemData> inventoryRepository)
             : base(logger.CreateLogger<GrantItemUseCase>())
         {
+            _mediator = mediator;
             _inventoryRepository = inventoryRepository;
-            _getCustomerByIdUseCase = getCustomerByIdUseCase;
         }
 
         protected override async Task<Response> ExecuteSendAsync(GrantItemRequest request,
             CancellationToken token = new())
         {
-            var customerResponse = await _getCustomerByIdUseCase.SendAsync(new GetCustomerByIdRequest(request.UserId), token);
+            var customerResponse = await _mediator.Send(new GetCustomerByIdRequest(request.UserId), token);
             if (customerResponse.IsFailure)
                 return Response.Fail(new Error("CUSTOMER_NOT_FOUND", "Customer not found"));
             
             var customerStateEntry = customerResponse.Content.GetRaw<CustomerData>();
-            var inventoryResult = await _inventoryRepository.GetByIdAsync(customerStateEntry.CustomerId, token);
+            var inventoryResult = await _inventoryRepository.GetCustomerByIdAsync(customerStateEntry.CustomerId, token);
 
             var inventoryItem = inventoryResult.IsFailure ? 
                 new InventoryItem(customerStateEntry.ToCustomer()) 

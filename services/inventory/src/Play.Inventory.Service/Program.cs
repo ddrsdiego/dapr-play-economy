@@ -26,6 +26,7 @@ namespace Play.Inventory.Service
                 {
                     services.AddDaprClient();
                     services.AddControllers();
+                    services.AddEndpointsApiExplorer();
                     services.AddApiVersioning(options =>
                     {
                         options.DefaultApiVersion = new ApiVersion(1, 0);

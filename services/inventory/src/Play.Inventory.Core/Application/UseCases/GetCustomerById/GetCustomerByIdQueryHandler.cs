@@ -2,34 +2,31 @@
 {
     using Common.Application;
     using Common.Application.Infra.Repositories.Dapr;
-    using Common.Application.UseCase;
     using Domain.AggregateModel.CustomerAggregate;
     using Infra.Clients;
     using Infra.Repositories.CustomerRepository;
+    using MediatR;
     using Microsoft.AspNetCore.Http;
-    using Microsoft.Extensions.Logging;
 
-    public sealed class GetCustomerByIdUseCase : UseCaseExecutor<GetCustomerByIdRequest>
+    public sealed class GetCustomerByIdQueryHandler : IRequestHandler<GetCustomerByIdRequest, Response>
     {
         private readonly ICustomerClient _customerClient;
         private readonly IDaprStateEntryRepository<CustomerData> _customerRepository;
 
-        public GetCustomerByIdUseCase(ILoggerFactory logger,
-            IDaprStateEntryRepository<CustomerData> customerRepository, ICustomerClient customerClient)
-            : base(logger.CreateLogger<GetCustomerByIdUseCase>())
+        public GetCustomerByIdQueryHandler(ICustomerClient customerClient,
+            IDaprStateEntryRepository<CustomerData> customerRepository)
         {
-            _customerRepository = customerRepository;
             _customerClient = customerClient;
+            _customerRepository = customerRepository;
         }
 
-        protected override async Task<Response> ExecuteSendAsync(GetCustomerByIdRequest request,
-            CancellationToken token = new CancellationToken())
+        public async Task<Response> Handle(GetCustomerByIdRequest request, CancellationToken cancellationToken)
         {
-            var customerResult = await _customerRepository.GetByIdAsync(request.UserId, token);
+            var customerResult = await _customerRepository.GetCustomerByIdAsync(request.UserId, cancellationToken);
             if (customerResult.IsSuccess)
                 return Response.Ok(ResponseContent.Create(customerResult.Value));
 
-            var customerClientResult = await _customerClient.GetCustomerById(request.UserId);
+            var customerClientResult = await _customerClient.GetCustomerByIdAsync(request.UserId);
             if (customerClientResult.IsFailure)
                 return Response.Fail(new Error("CUSTOMER_NOT_FOUND", $"Customer no found to id: {request.UserId}"),
                     StatusCodes.Status404NotFound);
@@ -37,8 +34,10 @@
             var customerEntity = new Customer(customerClientResult.Value.CustomerId, customerClientResult.Value.Name,
                 customerClientResult.Value.Email, DateTimeOffset.UtcNow);
 
-            await _customerRepository.UpsertAsync(customerEntity.ToStateEntry(), token);
-            return Response.Ok(ResponseContent.Create(customerEntity.ToStateEntry()), StatusCodes.Status201Created);
+            var customerStateEntry = customerEntity.ToStateEntry();
+            await _customerRepository.UpsertAsync(customerStateEntry, cancellationToken);
+            
+            return Response.Ok(ResponseContent.Create(customerStateEntry), StatusCodes.Status201Created);
         }
     }
 }

@@ -23,14 +23,14 @@
         [ProducesResponseType((int) HttpStatusCode.BadRequest)]
         [ProducesResponseType(typeof(GetCustomerByIdResponse), (int) HttpStatusCode.OK,
             MediaTypeNames.Application.Json)]
-        public ValueTask HandleAsync(string id, CancellationToken cancellationToken = new())
+        public ValueTask GetCustomerById(string id, CancellationToken cancellationToken = new())
         {
-            var rsp = _sender.Send(new GetCustomerByIdRequest(id), cancellationToken);
-            return rsp.WriteToPipeAsync(Response, cancellationToken: cancellationToken);
+            var response = _sender.Send(new GetCustomerByIdRequest(id), cancellationToken);
+            return response.WriteToPipeAsync(Response, cancellationToken: cancellationToken);
         }
 
         [HttpPut("{id}")]
-        public ValueTask UpdateCustomerAsync(string id, [FromBody] UpdateCustomer request)
+        public ValueTask UpdateCustomerRequest(string id, [FromBody] UpdateCustomer request)
         {
             var response = _sender.Send(new UpdateCustomerRequest(id, request.Name));
             return response.WriteToPipeAsync(Response);

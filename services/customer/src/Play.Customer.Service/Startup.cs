@@ -13,10 +13,7 @@ namespace Play.Customer.Service
 
     public class Startup
     {
-        public Startup(IConfiguration configuration)
-        {
-            Configuration = configuration;
-        }
+        public Startup(IConfiguration configuration) => Configuration = configuration;
 
         public IConfiguration Configuration { get; }
 
@@ -25,6 +22,7 @@ namespace Play.Customer.Service
             services.AddAppBaseConfig();
             services.AddControllers();
             services.AddPlayCustomerServices(Configuration);
+            services.AddEndpointsApiExplorer();
         }
 
         public void Configure(IApplicationBuilder app, IWebHostEnvironment env,

@@ -17,7 +17,7 @@
         
         public async Task<Response> Handle(CreateCatalogItemReq request, CancellationToken cancellationToken)
         {
-            var catalogItemDataResult = await _catalogItemDaprRepository.GetByIdAsync(request.CatalogItemId, cancellationToken);
+            var catalogItemDataResult = await _catalogItemDaprRepository.GetCustomerByIdAsync(request.CatalogItemId, cancellationToken);
             
             var catalogItem = new CatalogItem(request.CatalogItemId, request.Name, request.Description,
                 DateTimeOffset.UtcNow);
