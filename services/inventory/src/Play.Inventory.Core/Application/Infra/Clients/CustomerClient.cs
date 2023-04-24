@@ -5,11 +5,11 @@
     using CSharpFunctionalExtensions;
     using Microsoft.Extensions.Logging;
 
-    public record GetCustomerByEmailResponse(string CustomerId, string Name, string Email);
+    public record GetCustomerByIdResponse(string CustomerId, string Name, string Email);
 
     public interface ICustomerClient
     {
-        Task<Result<GetCustomerByEmailResponse>> GetCustomerByIdAsync(string userId);
+        Task<Result<GetCustomerByIdResponse>> GetCustomerByIdAsync(string userId);
     }
 
     internal sealed class CustomerClient : ICustomerClient
@@ -25,7 +25,7 @@
             _httpClientFactory = httpClientFactory;
         }
 
-        public async Task<Result<GetCustomerByEmailResponse>> GetCustomerByIdAsync(string userId)
+        public async Task<Result<GetCustomerByIdResponse>> GetCustomerByIdAsync(string userId)
         {
             var client = _httpClientFactory.CreateClient(PlayCustomerServiceName);
 
@@ -33,10 +33,10 @@
             {
                 var response = await client.GetAsync(CustomerClientEndpoints.GetCustomerById(userId));
                 if (response.StatusCode != HttpStatusCode.OK)
-                    return Result.Failure<GetCustomerByEmailResponse>("");
+                    return Result.Failure<GetCustomerByIdResponse>("");
 
                 var content = await response.Content.ReadAsStringAsync();
-                var customerResponse = JsonSerializer.Deserialize<GetCustomerByEmailResponse>(content,
+                var customerResponse = JsonSerializer.Deserialize<GetCustomerByIdResponse>(content,
                     new JsonSerializerOptions {PropertyNameCaseInsensitive = true});
 
                 return Result.Success(customerResponse);
@@ -44,7 +44,7 @@
             catch (Exception e)
             {
                 _logger.LogError(e, "");
-                return Result.Failure<GetCustomerByEmailResponse>(e.Message);
+                return Result.Failure<GetCustomerByIdResponse>(e.Message);
             }
         }
     }
