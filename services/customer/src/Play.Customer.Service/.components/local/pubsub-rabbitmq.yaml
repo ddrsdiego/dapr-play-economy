@@ -1,7 +1,7 @@
 apiVersion: dapr.io/v1alpha1
 kind: Component
 metadata:
-  name: play-customer-pub-sub
+  name: play-customer-service-pubsub
 spec:
   type: pubsub.rabbitmq
   version: v1
@@ -9,7 +9,7 @@ spec:
     - name: connectionString
       value: "amqp://guest:guest@127.0.0.1:5672"
     - name: consumerID
-      value: Play.Customer.Service
+      value: play-customer-service
     - name: deletedWhenUnused
       value: false
     - name: deliveryMode

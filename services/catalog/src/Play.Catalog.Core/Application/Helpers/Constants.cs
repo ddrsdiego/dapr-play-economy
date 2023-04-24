@@ -8,6 +8,6 @@
 
     public static class DaprParameters
     {
-        public const string PubSubName = "play-catalog-service";
+        public const string PubSubName = "play-catalog-service-pubsub";
     }
 }

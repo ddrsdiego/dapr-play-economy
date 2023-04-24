@@ -2,18 +2,18 @@
 {
     using System.Text.Json.Serialization;
     using Common.Application;
-    using Common.Application.UseCase;
     using Microsoft.AspNetCore.Builder;
     using Microsoft.AspNetCore.Http;
     using Microsoft.AspNetCore.Routing;
     using Microsoft.Extensions.DependencyInjection;
     using Core.Application.Helpers.Constants;
     using Core.Application.UseCases.CustomerUpdated;
+    using MediatR;
 
-    public readonly struct CustomerUpdated
+    public readonly struct CustomerUpdatedRequest
     {
         [JsonConstructor]
-        public CustomerUpdated(string customerId, string name, string email)
+        public CustomerUpdatedRequest(string customerId, string name, string email)
         {
             CustomerId = customerId;
             Name = name;
@@ -23,6 +23,8 @@
         public string CustomerId { get; }
         public string Name { get; }
         public string Email { get; }
+        
+        public CustomerUpdatedCommand ToCommand() => new(CustomerId, Name, Email);
     }
 
     internal static class CustomerUpdatedSubscriber
@@ -33,17 +35,13 @@
             {
                 var cancellationToken = context.RequestAborted;
 
-                var customerUpdated = await context.ReadFromBodyAsync<CustomerUpdated>();
-                if (customerUpdated.IsFailure)
+                var customerUpdatedRequest = await context.ReadFromBodyAsync<CustomerUpdatedRequest>();
+                if (customerUpdatedRequest.IsFailure)
                     await context.Response.WriteAsync("", cancellationToken: cancellationToken);
+                
+                var sender = context.RequestServices.GetRequiredService<ISender>();
 
-                var customerUpdatedUseCase =
-                    context.RequestServices.GetRequiredService<IUseCaseExecutor<CustomerUpdatedReq>>();
-
-                var response = await customerUpdatedUseCase.SendAsync(new CustomerUpdatedReq(
-                        customerUpdated.Value.CustomerId, customerUpdated.Value.Name, customerUpdated.Value.Email),
-                    cancellationToken);
-
+                var response = await sender.Send(customerUpdatedRequest.Value.ToCommand(), cancellationToken);
                 if (response.IsFailure)
                     await context.Response.WriteAsync("", cancellationToken: cancellationToken);
 

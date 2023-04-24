@@ -38,24 +38,20 @@
                     await context.Response.WriteAsync("", cancellationToken: context.RequestAborted);
 
                 var sender = context.RequestServices.GetRequiredService<ISender>();
-                var createCatalogItemReq = readResult.Value.ToCreateCatalogItemReq();
-                
-                var response = await sender.Send(createCatalogItemReq, context.RequestAborted);
+                var createCatalogItemCommand = readResult.Value.ToCreateCatalogItemCommand();
+
+                var response = await sender.Send(createCatalogItemCommand, context.RequestAborted);
                 await response.WriteToPipeAsync(context.Response, context.RequestAborted);
-                
             }).WithTopic(DaprSettings.PubSub.Name, Topics.CatalogItemUpdated);
         }
     }
 
     internal static class CreateCatalogItemReqEx
     {
-        public static CreateCatalogItemReq ToCreateCatalogItemReq(this CatalogItemUpdated catalogItemUpdated)
-        {
-            return new CreateCatalogItemReq(
-                catalogItemUpdated.CatalogItemId,
+        public static CreateCatalogItemCommand ToCreateCatalogItemCommand(this CatalogItemUpdated catalogItemUpdated) =>
+            new(catalogItemUpdated.CatalogItemId,
                 catalogItemUpdated.Name,
                 catalogItemUpdated.Description,
                 catalogItemUpdated.UnitPrice);
-        }
     }
 }

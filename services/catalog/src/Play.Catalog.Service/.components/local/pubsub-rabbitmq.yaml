@@ -1,7 +1,7 @@
 apiVersion: dapr.io/v1alpha1
 kind: Component
 metadata:
-  name: play-catalog-service
+  name: play-catalog-service-pubsub
 spec:
   type: pubsub.rabbitmq
   version: v1
@@ -9,7 +9,7 @@ spec:
     - name: connectionString
       value: "amqp://guest:guest@127.0.0.1:5672"
     - name: consumerID
-      value: Play.Catalog.Service
+      value: play-catalog-service
     - name: deletedWhenUnused
       value: false
     - name: deliveryMode
@@ -17,7 +17,7 @@ spec:
     - name: requeueInFailure
       value: false
     - name: prefetchCount
-      value: 0
+      value: 250
     - name: reconnectWait
       value: 0
     - name: concurrencyMode

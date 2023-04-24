@@ -5,7 +5,6 @@
     using Microsoft.AspNetCore.Mvc;
     using Common.Application.UseCase;
     using Core.Application.UseCases.GetInventoryItemByUserId;
-    using Core.Application.UseCases.GrantItem;
     using MediatR;
     using Requests;
 

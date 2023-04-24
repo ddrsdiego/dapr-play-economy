@@ -4,14 +4,13 @@
     using Microsoft.Extensions.DependencyInjection;
     using UseCases.CustomerUpdated;
     using UseCases.GetInventoryItemByUserId;
-    using UseCases.GrantItem;
 
     public static class UseCasesContainer
     {
         public static IServiceCollection AddUseCases(this IServiceCollection services)
         {
             services.AddTransient<IUseCaseExecutor<GetInventoryItemByUserIdReq>, GetInventoryItemByUserIdUseCase>();
-            services.AddTransient<IUseCaseExecutor<CustomerUpdatedReq>, CustomerUpdatedUseCase>();
+            services.AddTransient<IUseCaseExecutor<CustomerUpdatedCommand>, CustomerUpdatedUseCase>();
             return services;
         }
     }

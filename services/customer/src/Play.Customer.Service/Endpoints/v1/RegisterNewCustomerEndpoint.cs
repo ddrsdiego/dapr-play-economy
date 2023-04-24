@@ -11,6 +11,16 @@ namespace Play.Customer.Service.Endpoints.v1
     using MediatR;
     using Microsoft.AspNetCore.Mvc;
 
+    public sealed class RegisterNewCustomerRequest
+    {
+        public string RequestId { get; set; }
+        public string Document { get; set; }
+        public string Name { get; set; }
+        public string Email { get; set; }
+        
+        public RegisterNewCustomerCommand ToCommand() => new(RequestId, Document, Name, Email);
+    }
+
     public sealed class RegisterNewCustomerEndpoint : EndpointBaseAsync
         .WithRequest<RegisterNewCustomerRequest>
         .WithActionResult
@@ -23,12 +33,11 @@ namespace Play.Customer.Service.Endpoints.v1
         [RequiredHeader(HeaderNames.XRequestId, HeaderDescriptions.XRequestId)]
         [ProducesResponseType(typeof(RegisterNewCustomerResponse), (int) HttpStatusCode.Created,
             MediaTypeNames.Application.Json)]
-        public override async Task<ActionResult> HandleAsync(RegisterNewCustomerRequest request,
+        public override async Task<ActionResult> HandleAsync(RegisterNewCustomerRequest command,
             CancellationToken cancellationToken = new())
         {
-            request.SetRequestId(HttpContext.Request.Headers[HeaderNames.XRequestId].ToString());
-
-            var response = await _sender.Send(request, cancellationToken);
+            command.RequestId = HttpContext.Request.Headers[HeaderNames.XRequestId].ToString();
+            var response = await _sender.Send(command.ToCommand(), cancellationToken);
             if (response.IsFailure)
                 return BadRequest(response.ErrorResponse);
 

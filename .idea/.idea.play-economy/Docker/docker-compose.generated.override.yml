@@ -8,16 +8,27 @@ services:
       target: "base"
     command: []
     entrypoint:
-    - "dotnet"
-    - "/app/bin/Debug/net7.0/Play.Catalog.Service.dll"
-    environment: {}
+    - "/riderDebugger/linux-x64/dotnet/dotnet"
+    - "/riderDebugger/JetBrains.Debugger.Worker.exe"
+    - "--mode=server"
+    - "--frontend-port=57100"
+    - "--backend-port=57300"
+    environment:
+      RIDER_DEBUGGER_LOG_DIR: "/riderLogs"
+      RESHARPER_LOG_CONF: "/riderLogsConf/backend-log.xml"
     image: "play.catalog.service:dev"
-    ports: []
+    ports:
+    - "57047:57100"
+    - "57247:57300"
     volumes:
     - "C:\\Users\\User\\AppData\\Roaming\\ASP.NET\\Https:/root/.aspnet/https"
     - "C:\\Users\\User\\AppData\\Roaming\\Microsoft\\UserSecrets:/root/.microsoft/usersecrets"
     - "C:\\Users\\User\\Documents\\development\\dapr\\play-economy\\services\\catalog\\\
       src\\Play.Catalog.Service:/app:rw"
+    - "C:\\Users\\User\\AppData\\Local\\JetBrains\\RiderRemoteDebugger\\2023.1\\Linux64:/riderDebugger"
+    - "C:\\Users\\User\\AppData\\Local\\JetBrains\\Toolbox\\apps\\Rider\\ch-0\\231.8109.212/bin:/riderLogsConf"
+    - "C:\\Users\\User\\AppData\\Local\\JetBrains\\Rider2023.1\\log\\DebuggerWorker\\\
+      JetBrains.Debugger.Worker.2023_4_24_18_23_10:/riderLogs:rw"
     working_dir: "/app"
   play-customer-service:
     build:
@@ -26,16 +37,27 @@ services:
       target: "base"
     command: []
     entrypoint:
-    - "dotnet"
-    - "/app/bin/Debug/net7.0/Play.Customer.Service.dll"
-    environment: {}
+    - "/riderDebugger/linux-x64/dotnet/dotnet"
+    - "/riderDebugger/JetBrains.Debugger.Worker.exe"
+    - "--mode=server"
+    - "--frontend-port=57100"
+    - "--backend-port=57300"
+    environment:
+      RIDER_DEBUGGER_LOG_DIR: "/riderLogs"
+      RESHARPER_LOG_CONF: "/riderLogsConf/backend-log.xml"
     image: "play.customer.service:dev"
-    ports: []
+    ports:
+    - "57048:57100"
+    - "57248:57300"
     volumes:
     - "C:\\Users\\User\\AppData\\Roaming\\ASP.NET\\Https:/root/.aspnet/https"
     - "C:\\Users\\User\\AppData\\Roaming\\Microsoft\\UserSecrets:/root/.microsoft/usersecrets"
     - "C:\\Users\\User\\Documents\\development\\dapr\\play-economy\\services\\customer\\\
       src\\Play.Customer.Service:/app:rw"
+    - "C:\\Users\\User\\AppData\\Local\\JetBrains\\RiderRemoteDebugger\\2023.1\\Linux64:/riderDebugger"
+    - "C:\\Users\\User\\AppData\\Local\\JetBrains\\Toolbox\\apps\\Rider\\ch-0\\231.8109.212/bin:/riderLogsConf"
+    - "C:\\Users\\User\\AppData\\Local\\JetBrains\\Rider2023.1\\log\\DebuggerWorker\\\
+      JetBrains.Debugger.Worker.2023_4_24_18_23_10:/riderLogs:rw"
     working_dir: "/app"
   play-inventory-service:
     build:
@@ -44,14 +66,25 @@ services:
       target: "base"
     command: []
     entrypoint:
-    - "dotnet"
-    - "/app/bin/Debug/net7.0/Play.Inventory.Service.dll"
-    environment: {}
+    - "/riderDebugger/linux-x64/dotnet/dotnet"
+    - "/riderDebugger/JetBrains.Debugger.Worker.exe"
+    - "--mode=server"
+    - "--frontend-port=57100"
+    - "--backend-port=57300"
+    environment:
+      RIDER_DEBUGGER_LOG_DIR: "/riderLogs"
+      RESHARPER_LOG_CONF: "/riderLogsConf/backend-log.xml"
     image: "play.inventory.service:dev"
-    ports: []
+    ports:
+    - "57049:57100"
+    - "57249:57300"
     volumes:
     - "C:\\Users\\User\\AppData\\Roaming\\ASP.NET\\Https:/root/.aspnet/https"
     - "C:\\Users\\User\\AppData\\Roaming\\Microsoft\\UserSecrets:/root/.microsoft/usersecrets"
     - "C:\\Users\\User\\Documents\\development\\dapr\\play-economy\\services\\inventory\\\
       src\\Play.Inventory.Service:/app:rw"
+    - "C:\\Users\\User\\AppData\\Local\\JetBrains\\RiderRemoteDebugger\\2023.1\\Linux64:/riderDebugger"
+    - "C:\\Users\\User\\AppData\\Local\\JetBrains\\Toolbox\\apps\\Rider\\ch-0\\231.8109.212/bin:/riderLogsConf"
+    - "C:\\Users\\User\\AppData\\Local\\JetBrains\\Rider2023.1\\log\\DebuggerWorker\\\
+      JetBrains.Debugger.Worker.2023_4_24_18_23_10:/riderLogs:rw"
     working_dir: "/app"

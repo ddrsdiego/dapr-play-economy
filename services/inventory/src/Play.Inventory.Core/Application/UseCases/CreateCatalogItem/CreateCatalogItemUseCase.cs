@@ -6,7 +6,7 @@
     using Infra.Repositories.CatalogItemRepository;
     using MediatR;
 
-    public sealed class CreateCatalogItemCommandHandler : IRequestHandler<CreateCatalogItemReq, Response>
+    public sealed class CreateCatalogItemCommandHandler : IRequestHandler<CreateCatalogItemCommand, Response>
     {
         private readonly IDaprStateEntryRepository<CatalogItemData> _catalogItemDaprRepository;
         
@@ -15,7 +15,7 @@
             _catalogItemDaprRepository = catalogItemDaprRepository;
         }
         
-        public async Task<Response> Handle(CreateCatalogItemReq request, CancellationToken cancellationToken)
+        public async Task<Response> Handle(CreateCatalogItemCommand request, CancellationToken cancellationToken)
         {
             var catalogItemDataResult = await _catalogItemDaprRepository.GetCustomerByIdAsync(request.CatalogItemId, cancellationToken);
             

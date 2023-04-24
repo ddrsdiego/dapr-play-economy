@@ -4,7 +4,7 @@
     {
         public static class PubSub
         {
-            public const string Name = "play-inventory-pub-sub";          
+            public const string Name = "play-inventory-service-pubsub";          
         }
     }
     

@@ -1,0 +1,43 @@
+apiVersion: dapr.io/v1alpha1
+kind: Component
+metadata:
+  name: play-inventory-service-pubsub
+spec:
+  type: pubsub.azure.servicebus.topics
+  version: v1
+  metadata:
+    # Required when not using Azure AD Authentication
+    - name: connectionString
+      value: "Endpoint=sb://rydo-azure-servicebus-sample.servicebus.windows.net/;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=Dy3WsJsHlUbHCMv25/68jP9rLTggHVXLa+ASbBCuS/g="
+    - name: consumerID # Optional: defaults to the app's own ID
+      value: play-inventory-service
+    - name: timeoutInSec # Optional
+      value: 60
+    - name: handlerTimeoutInSec # Optional
+      value: 60
+    - name: disableEntityManagement # Optional
+      value: "false"
+    - name: maxDeliveryCount # Optional
+      value: 3
+    - name: lockDurationInSec # Optional
+      value: 60
+    - name: lockRenewalInSec # Optional
+      value: 20
+    - name: maxActiveMessages # Optional
+      value: 10000
+    - name: maxConcurrentHandlers # Optional
+      value: 10
+    - name: defaultMessageTimeToLiveInSec # Optional
+      value: 10
+    - name: autoDeleteOnIdleInSec # Optional
+      value: 3600
+    - name: minConnectionRecoveryInSec # Optional
+      value: 2
+    - name: maxConnectionRecoveryInSec # Optional
+      value: 300
+    - name: maxRetriableErrorsPerSec # Optional
+      value: 10
+    - name: publishMaxRetries # Optional
+      value: 5
+    - name: publishInitialRetryIntervalInMs # Optional
+      value: 500

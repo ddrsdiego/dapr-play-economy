@@ -11,7 +11,7 @@
     using Microsoft.AspNetCore.Http;
     using Microsoft.Extensions.Logging;
 
-    internal sealed class RegisterNewCustomerCommandHandler : IRequestHandler<RegisterNewCustomerRequest, Response>
+    internal sealed class RegisterNewCustomerCommandHandler : IRequestHandler<RegisterNewCustomerCommand, Response>
     {
         private readonly DaprClient _daprClient;
         private readonly ILogger<RegisterNewCustomerCommandHandler> _logger;
@@ -25,15 +25,15 @@
             _customerRepository = customerRepository;
         }
 
-        public async Task<Response> Handle(RegisterNewCustomerRequest request, CancellationToken cancellationToken)
+        public async Task<Response> Handle(RegisterNewCustomerCommand command, CancellationToken cancellationToken)
         {
-            if (await TryFindAlreadyRegisteredCustomers(request))
+            if (await TryFindAlreadyRegisteredCustomers(command))
             {
                 _logger.LogWarning("");
                 return Response.Fail("ERROR_USER_ALREADY_REGISTERED", "User already registered.");
             }
 
-            var newCustomer = new Customer(request.Document, request.Name, request.Email);
+            var newCustomer = new Customer(command.Document, command.Name, command.Email);
             await _customerRepository.SaveAsync(newCustomer, cancellationToken);
 
             foreach (var notification in newCustomer.DomainEvents)
@@ -48,13 +48,13 @@
                 newCustomer.CreatedAt);
 
             return Response.Ok(ResponseContent.Create(responseContent), StatusCodes.Status201Created,
-                request.RequestId);
+                command.RequestId);
         }
 
-        private async Task<bool> TryFindAlreadyRegisteredCustomers(RegisterNewCustomerRequest request)
+        private async Task<bool> TryFindAlreadyRegisteredCustomers(RegisterNewCustomerCommand command)
         {
-            var getByEmailTask = _customerRepository.GetByEmailAsync(request.Email);
-            var getByDocumentTask = _customerRepository.GetByEmailAsync(request.Document);
+            var getByEmailTask = _customerRepository.GetByEmailAsync(command.Email);
+            var getByDocumentTask = _customerRepository.GetByEmailAsync(command.Document);
 
             var tasks = new List<Task<Customer>>(2) {getByEmailTask, getByDocumentTask};
 
