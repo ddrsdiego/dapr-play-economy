@@ -1,4 +1,4 @@
-﻿version: '3.8'
+﻿version: '3.4'
 
 services:
   play-catalog-service:
@@ -11,129 +11,116 @@ services:
     environment:
       - APP_ID=play-catalog-service
       - APP_PORT=5100
-      - DAPR_GRPC_PORT=50001
+      - DAPR_HTTP_PORT=3100
+      - DAPR_GRPC_PORT=4001
       - ASPNETCORE_URLS=http://+:80
       - ASPNETCORE_ENVIRONMENT=Development
     ports:
       - "5100:80"
-      - "50001:50001"
-    networks:
-      - play-economy
+      - "3100:3100"
     depends_on:
       - postgres
       - rabbitmq
-
-  play-catalog-service-dapr:
-    image: "daprio/daprd:edge"
-    container_name: play-catalog-service-dapr
-    command: [ "./daprd",
-      "--app-id", "play-catalog-service",
-      "--app-port", "5100",
-      "--dapr-grpc-port", "50001",
-      "--placement-host-address", "placement:50006", # Dapr's placement service can be reach via the docker DNS entry
-      "--resources-path", "./components",
-      "-log-level", "debug"
-    ]
-    volumes:
-      - "./services/catalog/src/Play.Catalog.Service/.components:/components" # Mount our components folder for the runtime to use. The mounted location must match the --resources-path argument.
+      - placement
     networks:
       - play-economy
+  play-catalog-service-dapr:
+    image: "daprio/daprd:latest"
+    command: [ "./daprd",
+               "-app-id", "play-catalog-service",
+               "-app-port", "5100",
+               "-dapr-http-port", "3100",
+               "-placement-host-address", "placement:50006",
+               "-dapr-grpc-port", "4001",
+               "-resources-path", "/components",
+               "-log-level","debug" ]
+    volumes:
+      - "./services/catalog/src/Play.Catalog.Service/.components:/components"
     depends_on:
-      - placement
       - play-catalog-service
-    network_mode: "service:play-catalog-service" # Attach the nodeapp-dapr service to the nodeapp network namespace
+    network_mode: "service:play-catalog-service"
 
   play-customer-service:
     image: play.customer.service
-    hostname: play-customer-service
-    container_name: play-customer-service
     build:
       context: .
       dockerfile: services/customer/src/Play.Customer.Service/Dockerfile
     environment:
       - APP_ID=play-customer-service
       - APP_PORT=5300
-      - DAPR_GRPC_PORT=50003
+      - DAPR_HTTP_PORT=3300
+      - DAPR_GRPC_PORT=4003
       - ASPNETCORE_URLS=http://+:80
       - ASPNETCORE_ENVIRONMENT=Local
     ports:
       - "5300:80"
-      - "50003:50003"
-    networks:
-      - play-economy
+      - "3300:3300"
     depends_on:
       - postgres
       - rabbitmq
-
-  play-customer-service-dapr:
-    container_name: play-customer-service-dapr
-    image: "daprio/daprd:edge"
-    command: [
-      "./daprd",
-      "--app-id", "play-customer-service",
-      "--app-port", "5300",
-      "--dapr-grpc-port", "50003",
-      "--placement-host-address", "placement:50006", # Dapr's placement service can be reach via the docker DNS entry
-      "--resources-path", "./components",
-      "-log-level", "debug"
-    ]
-    volumes:
-      - "./services/customer/src/Play.Customer.Service/.components:/components" # Mount our components folder for the runtime to use. The mounted location must match the --resources-path argument.
+      - placement
     networks:
       - play-economy
+  play-customer-service-dapr:
+    image: "daprio/daprd:latest"
+    command: [ "./daprd",
+               "-app-id", "play-customer-service",
+               "-app-port", "5300",
+               "-dapr-http-port", "3300",
+               "-placement-host-address", "placement:50006",
+               "-dapr-grpc-port", "4003",
+               "-resources-path", "/components",
+               "-log-level","debug" ]
+    volumes:
+      - "./services/customer/src/Play.Customer.Service/.components:/components"
     depends_on:
-      - placement
       - play-customer-service
-    network_mode: "service:play-customer-service" # Attach the nodeapp-dapr service to the nodeapp network namespace
+    network_mode: "service:play-customer-service"
   
   play-inventory-service:
     image: play.inventory.service
-    hostname: play-inventory-service
-    container_name: play-inventory-service
     build:
       context: .
       dockerfile: services/inventory/src/Play.Inventory.Service/Dockerfile
     environment:
       - APP_ID=play-inventory-service
       - APP_PORT=5200
-      - DAPR_GRPC_PORT=50002
+      - DAPR_HTTP_PORT=3200
+      - DAPR_GRPC_PORT=4002
       - ASPNETCORE_URLS=http://+:80
       - ASPNETCORE_ENVIRONMENT=Development
     ports:
       - "5200:80"
-      - "50002:50002"
-    networks:
-      - play-economy
+      - "3200:3200"
     depends_on:
       - postgres
       - rabbitmq
-
-  play-inventory-service-dapr:
-    container_name: play-inventory-service-dapr
-    image: "daprio/daprd:edge"
-    command: [ "./daprd",
-      "--app-id", "play-inventory-service",
-      "--app-port", "5200",
-      "--dapr-grpc-port", "50002",
-      "--placement-host-address", "placement:50006", # Dapr's placement service can be reach via the docker DNS entry
-      "--resources-path", "./components",
-      "-log-level", "debug"
-    ]
-    volumes:
-      - "./services/inventory/src/Play.Inventory.Service/.components:/components" # Mount our components folder for the runtime to use. The mounted location must match the --resources-path argument.
+      - placement
     networks:
       - play-economy
+  play-inventory-service-dapr:
+    image: "daprio/daprd:latest"
+    command: [ "./daprd",
+               "-app-id", "play-inventory-service",
+               "-app-port", "5200",
+               "-dapr-http-port", "3200",
+               "-placement-host-address", "placement:50006",
+               "-dapr-grpc-port", "4002",
+               "-resources-path", "/components",
+               "-log-level","debug" ]
+    volumes:
+      - "./services/inventory/src/Play.Inventory.Service/.components:/components"
     depends_on:
-      - placement
       - play-inventory-service
-    network_mode: "service:play-inventory-service" # Attach the nodeapp-dapr service to the nodeapp network namespace
+    network_mode: "service:play-inventory-service"
 
   placement:
     image: "daprio/dapr"
-    container_name: dapr-placement
-    command: [ "./placement", "--port", "50006" ]
+    command: [ "./placement", "-port", "50006" ]
     ports:
       - "50006:50006"
+    networks:
+      - play-economy
 
   rabbitmq:
     container_name: rabbitmq

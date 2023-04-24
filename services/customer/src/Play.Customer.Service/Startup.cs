@@ -6,6 +6,7 @@ namespace Play.Customer.Service
     using Microsoft.Extensions.DependencyInjection;
     using Microsoft.Extensions.Hosting;
     using Core.Application.IoC;
+    using Microsoft.AspNetCore.Http;
     using Microsoft.AspNetCore.Mvc.ApiExplorer;
     using Microsoft.Extensions.Configuration;
     using Subscribers.v1;
@@ -30,15 +31,18 @@ namespace Play.Customer.Service
             IApiVersionDescriptionProvider apiVersionDescriptionProvider)
         {
             if (env.IsDevelopment())
-            {
                 app.UseDeveloperExceptionPage();
-                app.UseSwaggerVersioning(apiVersionDescriptionProvider);
-            }
 
             app.UseRouting();
             app.UseCloudEvents();
+            app.UseSwaggerVersioning(apiVersionDescriptionProvider);
             app.UseEndpoints(endpoints =>
             {
+                endpoints.MapGet("/{userId}", async (HttpContext context, string userId) =>
+                {
+                    await context.Response.WriteAsync($"Hello {userId} World! ");
+                });
+                
                 endpoints.MapControllers();
                 endpoints.HandleCustomerRegistered();
                 endpoints.MapSubscribeHandler();

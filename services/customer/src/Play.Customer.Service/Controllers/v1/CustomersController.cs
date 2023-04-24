@@ -1,7 +1,11 @@
 ﻿namespace Play.Customer.Service.Controllers.v1
 {
+    using System.Net;
+    using System.Net.Mime;
+    using System.Threading;
     using System.Threading.Tasks;
     using Common.Application;
+    using Core.Application.UseCases.GetCustomerById;
     using Core.Application.UseCases.UpdateCustomer;
     using MediatR;
     using Microsoft.AspNetCore.Mvc;
@@ -14,6 +18,16 @@
         private readonly ISender _sender;
 
         public CustomersController(ISender sender) => _sender = sender;
+        
+        [HttpGet("{id}")]
+        [ProducesResponseType((int) HttpStatusCode.BadRequest)]
+        [ProducesResponseType(typeof(GetCustomerByIdResponse), (int) HttpStatusCode.OK,
+            MediaTypeNames.Application.Json)]
+        public ValueTask HandleAsync(string id, CancellationToken cancellationToken = new())
+        {
+            var rsp = _sender.Send(new GetCustomerByIdRequest(id), cancellationToken);
+            return rsp.WriteToPipeAsync(Response, cancellationToken: cancellationToken);
+        }
 
         [HttpPut("{id}")]
         public ValueTask UpdateCustomerAsync(string id, [FromBody] UpdateCustomer request)

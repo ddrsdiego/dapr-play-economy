@@ -26,9 +26,9 @@ namespace Play.Inventory.Service
                     c.SwaggerEndpoint("/swagger/v1/swagger.json", Assembly.GetEntryAssembly()?.GetName().Name));
             }
 
-            app.UseHttpsRedirection();
+            // app.UseAuthorization();
+            // app.UseHttpsRedirection();
             app.UseRouting();
-            app.UseAuthorization();
             app.UseCloudEvents();
             app.UseEndpoints(endpoints =>
             {

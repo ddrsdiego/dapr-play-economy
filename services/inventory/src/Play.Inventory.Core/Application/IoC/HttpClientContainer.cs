@@ -12,17 +12,16 @@
 
         public static void AddHttpClients(this IServiceCollection services)
         {
-            var daprHttpPort = Environment.GetEnvironmentVariable("DAPR_HTTP_PORT");
-
             services.AddSingleton<ICatalogClient, CatalogClient>();
             services.AddSingleton<ICustomerClient, CustomerClient>();
 
+            var daprHttpPort = Environment.GetEnvironmentVariable("DAPR_HTTP_PORT");
             var uriSideCar = $"http://localhost:{daprHttpPort}";
-
+           
             services.AddHttpClient(CatalogClient.PlayCatalogServiceName, client =>
                 {
                     client.BaseAddress = new Uri(uriSideCar);
-                    client.DefaultRequestHeaders.TryAddWithoutValidation(DaprAppIdHeader, CatalogClient.PlayCatalogServiceName);
+                    client.DefaultRequestHeaders.Add(DaprAppIdHeader, CatalogClient.PlayCatalogServiceName);
                     client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue(MediaTypeNames.Application.Json));
                 })
                 .SetHandlerLifetime(TimeSpan.FromMinutes(2))
@@ -31,7 +30,7 @@
             services.AddHttpClient(CustomerClient.PlayCustomerServiceName, client =>
             {
                 client.BaseAddress = new Uri(uriSideCar);
-                client.DefaultRequestHeaders.TryAddWithoutValidation(DaprAppIdHeader, CustomerClient.PlayCustomerServiceName);
+                client.DefaultRequestHeaders.Add(DaprAppIdHeader, CustomerClient.PlayCustomerServiceName);
                 client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue(MediaTypeNames.Application.Json));
             });
         }

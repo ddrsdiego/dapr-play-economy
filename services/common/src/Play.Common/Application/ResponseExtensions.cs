@@ -54,10 +54,10 @@ namespace Play.Common.Application
 
             if (readResponse.HasBodyToWrite)
                 response.BodyWriter.WriteToPipe(readResponse.Content.ValueAsJsonUtf8Bytes);
-            
+
             await response.BodyWriter.FlushAsync(cancellationToken);
             await response.BodyWriter.CompleteAsync();
-         }
+        }
 
         /// <summary>
         /// 

@@ -1,5 +1,5 @@
 # This is a generated file. Not intended for manual editing.
-version: "3.8"
+version: "3.4"
 services:
   play-catalog-service:
     build:
@@ -18,8 +18,8 @@ services:
       RESHARPER_LOG_CONF: "/riderLogsConf/backend-log.xml"
     image: "play.catalog.service:dev"
     ports:
-    - "57021:57100"
-    - "57221:57300"
+    - "57017:57100"
+    - "57217:57300"
     volumes:
     - "C:\\Users\\User\\AppData\\Roaming\\ASP.NET\\Https:/root/.aspnet/https"
     - "C:\\Users\\User\\AppData\\Roaming\\Microsoft\\UserSecrets:/root/.microsoft/usersecrets"
@@ -28,7 +28,7 @@ services:
     - "C:\\Users\\User\\AppData\\Local\\JetBrains\\RiderRemoteDebugger\\2023.1\\Linux64:/riderDebugger"
     - "C:\\Users\\User\\AppData\\Local\\JetBrains\\Toolbox\\apps\\Rider\\ch-0\\231.8109.212/bin:/riderLogsConf"
     - "C:\\Users\\User\\AppData\\Local\\JetBrains\\Rider2023.1\\log\\DebuggerWorker\\\
-      JetBrains.Debugger.Worker.2023_4_22_05_49_13:/riderLogs:rw"
+      JetBrains.Debugger.Worker.2023_4_24_06_32_46:/riderLogs:rw"
     working_dir: "/app"
   play-customer-service:
     build:
@@ -47,8 +47,8 @@ services:
       RESHARPER_LOG_CONF: "/riderLogsConf/backend-log.xml"
     image: "play.customer.service:dev"
     ports:
-    - "57022:57100"
-    - "57222:57300"
+    - "57018:57100"
+    - "57218:57300"
     volumes:
     - "C:\\Users\\User\\AppData\\Roaming\\ASP.NET\\Https:/root/.aspnet/https"
     - "C:\\Users\\User\\AppData\\Roaming\\Microsoft\\UserSecrets:/root/.microsoft/usersecrets"
@@ -57,7 +57,7 @@ services:
     - "C:\\Users\\User\\AppData\\Local\\JetBrains\\RiderRemoteDebugger\\2023.1\\Linux64:/riderDebugger"
     - "C:\\Users\\User\\AppData\\Local\\JetBrains\\Toolbox\\apps\\Rider\\ch-0\\231.8109.212/bin:/riderLogsConf"
     - "C:\\Users\\User\\AppData\\Local\\JetBrains\\Rider2023.1\\log\\DebuggerWorker\\\
-      JetBrains.Debugger.Worker.2023_4_22_05_49_13:/riderLogs:rw"
+      JetBrains.Debugger.Worker.2023_4_24_06_32_46:/riderLogs:rw"
     working_dir: "/app"
   play-inventory-service:
     build:
@@ -76,8 +76,8 @@ services:
       RESHARPER_LOG_CONF: "/riderLogsConf/backend-log.xml"
     image: "play.inventory.service:dev"
     ports:
-    - "57023:57100"
-    - "57223:57300"
+    - "57019:57100"
+    - "57219:57300"
     volumes:
     - "C:\\Users\\User\\AppData\\Roaming\\ASP.NET\\Https:/root/.aspnet/https"
     - "C:\\Users\\User\\AppData\\Roaming\\Microsoft\\UserSecrets:/root/.microsoft/usersecrets"
@@ -86,5 +86,5 @@ services:
     - "C:\\Users\\User\\AppData\\Local\\JetBrains\\RiderRemoteDebugger\\2023.1\\Linux64:/riderDebugger"
     - "C:\\Users\\User\\AppData\\Local\\JetBrains\\Toolbox\\apps\\Rider\\ch-0\\231.8109.212/bin:/riderLogsConf"
     - "C:\\Users\\User\\AppData\\Local\\JetBrains\\Rider2023.1\\log\\DebuggerWorker\\\
-      JetBrains.Debugger.Worker.2023_4_22_05_49_13:/riderLogs:rw"
+      JetBrains.Debugger.Worker.2023_4_24_06_32_46:/riderLogs:rw"
     working_dir: "/app"

@@ -26,8 +26,8 @@ namespace Play.Catalog.Service
 
             app.UseRouting();
             app.UseCloudEvents();
-            app.UseHttpsRedirection();
-            app.UseAuthorization();
+            // app.UseHttpsRedirection();
+            // app.UseAuthorization();
             app.UseEndpoints(endpoints => { endpoints.MapControllers(); });
         }
     }
