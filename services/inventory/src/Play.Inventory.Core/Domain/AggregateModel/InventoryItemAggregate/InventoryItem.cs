@@ -31,7 +31,7 @@ namespace Play.Inventory.Core.Domain.AggregateModel.InventoryItemAggregate
         
         public DateTimeOffset CreatedAt { get; }
 
-        public IReadOnlyCollection<InventoryItemLine> Items => _items.Values.ToList().AsReadOnly();
+        public IEnumerable<InventoryItemLine> Items => _items.Values.ToList().AsReadOnly();
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void AddNewItemLine(InventoryItemLine inventoryItemLine)

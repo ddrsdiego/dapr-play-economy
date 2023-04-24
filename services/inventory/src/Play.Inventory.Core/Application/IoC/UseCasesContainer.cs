@@ -10,7 +10,6 @@
     {
         public static IServiceCollection AddUseCases(this IServiceCollection services)
         {
-            services.AddTransient<IUseCaseExecutor<GrantItemRequest>, GrantItemUseCase>();
             services.AddTransient<IUseCaseExecutor<GetInventoryItemByUserIdReq>, GetInventoryItemByUserIdUseCase>();
             services.AddTransient<IUseCaseExecutor<CustomerUpdatedReq>, CustomerUpdatedUseCase>();
             return services;

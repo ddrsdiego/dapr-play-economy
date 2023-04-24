@@ -8,7 +8,7 @@
     using MediatR;
     using Microsoft.AspNetCore.Http;
 
-    public sealed class GetCustomerByIdQueryHandler : IRequestHandler<GetCustomerByIdRequest, Response>
+    public sealed class GetCustomerByIdQueryHandler : IRequestHandler<GetCustomerByIdQuery, Response>
     {
         private readonly ICustomerClient _customerClient;
         private readonly IDaprStateEntryRepository<CustomerData> _customerRepository;
@@ -20,15 +20,15 @@
             _customerRepository = customerRepository;
         }
 
-        public async Task<Response> Handle(GetCustomerByIdRequest request, CancellationToken cancellationToken)
+        public async Task<Response> Handle(GetCustomerByIdQuery query, CancellationToken cancellationToken)
         {
-            var customerResult = await _customerRepository.GetCustomerByIdAsync(request.UserId, cancellationToken);
+            var customerResult = await _customerRepository.GetCustomerByIdAsync(query.UserId, cancellationToken);
             if (customerResult.IsSuccess)
                 return Response.Ok(ResponseContent.Create(customerResult.Value));
 
-            var customerClientResult = await _customerClient.GetCustomerByIdAsync(request.UserId);
+            var customerClientResult = await _customerClient.GetCustomerByIdAsync(query.UserId);
             if (customerClientResult.IsFailure)
-                return Response.Fail(new Error("CUSTOMER_NOT_FOUND", $"Customer no found to id: {request.UserId}"),
+                return Response.Fail(new Error("CUSTOMER_NOT_FOUND", $"Customer no found to id: {query.UserId}"),
                     StatusCodes.Status404NotFound);
 
             var customerEntity = new Customer(customerClientResult.Value.CustomerId, customerClientResult.Value.Name,

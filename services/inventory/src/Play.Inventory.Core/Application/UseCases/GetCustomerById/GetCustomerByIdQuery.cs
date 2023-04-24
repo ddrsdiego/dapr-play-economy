@@ -3,9 +3,9 @@
     using Common.Application;
     using MediatR;
 
-    public readonly struct GetCustomerByIdRequest : IRequest<Response>
+    public readonly struct GetCustomerByIdQuery : IRequest<Response>
     {
-        public GetCustomerByIdRequest(string userId) => UserId = userId;
+        public GetCustomerByIdQuery(string userId) => UserId = userId;
 
         public string UserId { get; }
     }

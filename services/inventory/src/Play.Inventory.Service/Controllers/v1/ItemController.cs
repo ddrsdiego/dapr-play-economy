@@ -6,19 +6,21 @@
     using Common.Application.UseCase;
     using Core.Application.UseCases.GetInventoryItemByUserId;
     using Core.Application.UseCases.GrantItem;
+    using MediatR;
+    using Requests;
 
     [ApiController]
     [ApiVersion("1")]
     [Route("api/v{version:apiVersion}/items")]
     public class ItemController : ControllerBase
     {
-        private readonly IUseCaseExecutor<GrantItemRequest> _grantItemUseCase;
+        private readonly ISender _sender;
         private readonly IUseCaseExecutor<GetInventoryItemByUserIdReq> _getInventoryItemByUserIdUseCase;
 
-        public ItemController(IUseCaseExecutor<GrantItemRequest> grantItemUseCase,
+        public ItemController(ISender sender,
             IUseCaseExecutor<GetInventoryItemByUserIdReq> getInventoryItemByUserIdUseCase)
         {
-            _grantItemUseCase = grantItemUseCase;
+            _sender = sender;
             _getInventoryItemByUserIdUseCase = getInventoryItemByUserIdUseCase;
         }
 
@@ -30,9 +32,9 @@
         }
 
         [HttpPost]
-        public ValueTask Post([FromBody] GrantItemRequest request)
+        public ValueTask GrantItemAsync([FromBody] GrantItemRequest request)
         {
-            var response = _grantItemUseCase.SendAsync(request);
+            var response = _sender.Send(request.ToGrantItemCommand());
             return response.WriteToPipeAsync(Response);
         }
     }

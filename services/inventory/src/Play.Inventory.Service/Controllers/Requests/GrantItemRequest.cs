@@ -1,9 +1,11 @@
-﻿namespace Play.Inventory.Core.Application.UseCases.GrantItem
+﻿namespace Play.Inventory.Service.Controllers.Requests
 {
-    using Common.Application.UseCase;
+    using System.Text.Json.Serialization;
+    using Core.Application.UseCases.GrantItem;
 
-    public sealed class GrantItemRequest : UseCaseRequest
+    public sealed class GrantItemRequest
     {
+        [JsonConstructor]
         public GrantItemRequest(string userId, string catalogItemId, int quantity)
         {
             UserId = userId;
@@ -14,5 +16,7 @@
         public string UserId { get; }
         public string CatalogItemId { get; }
         public int Quantity { get; }
+
+        public GrantItemCommand ToGrantItemCommand() => new(UserId, CatalogItemId, Quantity);
     }
 }
