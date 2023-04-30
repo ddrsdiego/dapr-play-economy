@@ -1,41 +1,68 @@
-namespace Play.Customer.Core.Application.UseCases.UpdateCustomer
+namespace Play.Customer.Core.Application.UseCases.UpdateCustomer;
+
+using System;
+using System.Threading;
+using System.Threading.Tasks;
+using Common.Application;
+using Common.Application.Infra;
+using Common.Application.Infra.Outbox;
+using Domain.AggregateModel.CustomerAggregate;
+using Helpers.Constants;
+using MediatR;
+using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Logging;
+
+public static class Errors
 {
-    using System.Threading;
-    using System.Threading.Tasks;
-    using Common.Application;
-    using Dapr.Client;
-    using Domain.AggregateModel.CustomerAggregate;
-    using Helpers.Constants;
-    using MediatR;
-    using Microsoft.AspNetCore.Http;
-    using Microsoft.Extensions.Logging;
-
-    internal sealed class UpdateCustomerCommandHandler : IRequestHandler<UpdateCustomerCommand, Response>
+    public static class Customer
     {
-        private readonly DaprClient _daprClient;
-        private readonly ICustomerRepository _customerRepository;
+        public static Error UserNotFound(string id) => new("USER_NOT_FOUND", $"Client not found for id {id}");
 
-        public UpdateCustomerCommandHandler(ILogger<UpdateCustomerCommandHandler> logger,
-            ICustomerRepository customerRepository, DaprClient daprClient)
+        public static Error UserAlreadyExists(string email) =>
+            new("USER_ALREADY_EXISTS", $"User already exists for email {email}");
+    }
+}
+
+internal sealed class UpdateCustomerCommandHandler : IRequestHandler<UpdateCustomerCommand, Response>
+{
+    private readonly IUnitOfWorkFactory _unitOfWorkFactory;
+    private readonly ICustomerRepository _customerRepository;
+    private readonly IOutboxMessagesRepository _outboxMessagesRepository;
+
+    public UpdateCustomerCommandHandler(ILogger<UpdateCustomerCommandHandler> logger,
+        ICustomerRepository customerRepository, IOutboxMessagesRepository outboxMessagesRepository,
+        IUnitOfWorkFactory unitOfWorkFactory)
+    {
+        _unitOfWorkFactory = unitOfWorkFactory;
+        _customerRepository = customerRepository;
+        _outboxMessagesRepository = outboxMessagesRepository;
+    }
+
+    public async Task<Response> Handle(UpdateCustomerCommand command, CancellationToken cancellationToken)
+    {
+        try
         {
-            _customerRepository = customerRepository;
-            _daprClient = daprClient;
+            var customer = await _customerRepository.GetByIdAsync(command.UserId);
+            if (customer.HasNoValue)
+                return Response.Fail(Errors.Customer.UserNotFound(command.UserId));
+
+
+            customer.Value.UpdateName(command.Name);
+
+            await using var uow = _unitOfWorkFactory.Create(cancellationToken);
+
+            var customerNameUpdated = new CustomerNameUpdated(customer.Value.Identification.Id, customer.Value.Name);
+
+            await _customerRepository.UpdateAsync(customer.Value, cancellationToken);
+            await _outboxMessagesRepository.SaveAsync(nameof(CustomerNameUpdated), Topics.CustomerUpdated,
+                customerNameUpdated, cancellationToken);
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine(e);
+            return Response.Ok(StatusCodes.Status500InternalServerError);
         }
 
-        public async Task<Response> Handle(UpdateCustomerCommand command, CancellationToken cancellationToken)
-        {
-            var customer = await _customerRepository.GetByIdAsync(command.Id);
-
-            customer.UpdateName(command.Name);
-
-            await _customerRepository.UpdateAsync(customer, cancellationToken);
-
-            var customerUpdated = new CustomerUpdated(customer.Identification.Id, customer.Name, customer.Email.Value);
-
-            _ = _daprClient.PublishEventAsync("play-customer-service-pubsub", Topics.CustomerUpdated,
-                customerUpdated, cancellationToken);
-
-            return Response.Ok(StatusCodes.Status204NoContent);
-        }
+        return Response.Ok(StatusCodes.Status204NoContent);
     }
 }

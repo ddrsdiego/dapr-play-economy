@@ -1,18 +1,25 @@
-namespace Play.Customer.Core.Domain.AggregateModel.CustomerAggregate
+namespace Play.Customer.Core.Domain.AggregateModel.CustomerAggregate;
+
+using System;
+using System.Threading.Tasks;
+using Common.Domain.SeedWorks;
+using CSharpFunctionalExtensions;
+
+public interface ICustomerRepository : IRepository<Customer>
 {
-    using System.Threading;
-    using System.Threading.Tasks;
+    Task<Maybe<Customer>> GetByEmailAsync(string email);
+    
+    Task<Maybe<Customer>> GetByDocumentAsync(string document);
+}
 
-    public interface ICustomerRepository
-    {
-        Task<Customer> GetByIdAsync(string customerId);
+internal sealed class CustomerData
+{
+    public string Id { get; set; }
+    public string CustomerId { get; set; }
+    public string Document { get; set; }
+    public string Name { get; set; }
+    public string Email { get; set; }
+    public DateTimeOffset CreatedAt { get; set; }
 
-        Task<Customer> GetByDocumentAsync(string document);
-        
-        Task<Customer> GetByEmailAsync(string email);
-
-        Task SaveAsync(Customer customer, CancellationToken cancellationToken = default);
-        
-        Task UpdateAsync(Customer customer, CancellationToken cancellationToken = default);
-    }
+    public static string GetKeyFormatted(string value) => $"{nameof(Customer).ToLowerInvariant()}-{value}";
 }

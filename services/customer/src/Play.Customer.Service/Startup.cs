@@ -1,44 +1,45 @@
-namespace Play.Customer.Service
+namespace Play.Customer.Service;
+
+using Common.Api;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using Core.Application.IoC;
+using Microsoft.AspNetCore.Mvc.ApiExplorer;
+using Microsoft.Extensions.Configuration;
+using Subscribers.v1;
+using Workers;
+
+public class Startup
 {
-    using Common.Api;
-    using Microsoft.AspNetCore.Builder;
-    using Microsoft.AspNetCore.Hosting;
-    using Microsoft.Extensions.DependencyInjection;
-    using Microsoft.Extensions.Hosting;
-    using Core.Application.IoC;
-    using Microsoft.AspNetCore.Mvc.ApiExplorer;
-    using Microsoft.Extensions.Configuration;
-    using Subscribers.v1;
+    public Startup(IConfiguration configuration) => Configuration = configuration;
 
-    public class Startup
+    public IConfiguration Configuration { get; }
+
+    public void ConfigureServices(IServiceCollection services)
     {
-        public Startup(IConfiguration configuration) => Configuration = configuration;
+        services.AddAppBaseConfig();
+        services.AddControllers();
+        services.AddEndpointsApiExplorer();
+        services.AddHostedService<OutboxMessagesWorker>();
+        services.AddPlayCustomerServices(Configuration);
+    }
 
-        public IConfiguration Configuration { get; }
+    public void Configure(IApplicationBuilder app, IWebHostEnvironment env,
+        IApiVersionDescriptionProvider apiVersionDescriptionProvider)
+    {
+        if (env.IsDevelopment())
+            app.UseDeveloperExceptionPage();
 
-        public void ConfigureServices(IServiceCollection services)
+        app.UseRouting();
+        app.UseCloudEvents();
+        app.UseSwaggerVersioning(apiVersionDescriptionProvider);
+        app.UseEndpoints(endpoints =>
         {
-            services.AddAppBaseConfig();
-            services.AddControllers();
-            services.AddEndpointsApiExplorer();
-            services.AddPlayCustomerServices(Configuration);
-        }
-
-        public void Configure(IApplicationBuilder app, IWebHostEnvironment env,
-            IApiVersionDescriptionProvider apiVersionDescriptionProvider)
-        {
-            if (env.IsDevelopment())
-                app.UseDeveloperExceptionPage();
-
-            app.UseRouting();
-            app.UseCloudEvents();
-            app.UseSwaggerVersioning(apiVersionDescriptionProvider);
-            app.UseEndpoints(endpoints =>
-            {
-                endpoints.MapControllers();
-                endpoints.HandleCustomerRegistered();
-                endpoints.MapSubscribeHandler();
-            });
-        }
+            endpoints.MapControllers();
+            endpoints.HandleCustomerRegistered();
+            endpoints.MapSubscribeHandler();
+        });
     }
 }

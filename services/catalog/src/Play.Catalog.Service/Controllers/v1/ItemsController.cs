@@ -39,15 +39,17 @@
                 return BadRequest(response.ErrorResponse);
 
             var createNewCatalogItemResponse = response.Content.GetRaw<CreateNewCatalogItemResponse>();
-            
+
             return CreatedAtAction(nameof(GetById), new {id = createNewCatalogItemResponse.Id},
                 createNewCatalogItemResponse);
         }
 
-        [HttpPut("{id}/unit-price")]
-        public ValueTask PutAsync(string id, decimal unitPrice)
+        [HttpPut("{catalogItemId}/unit-price")]
+        public ValueTask PutAsync(string catalogItemId, UpdateUnitPriceCatalogItemRequest request)
         {
-            var response = _sender.Send(new UpdateUnitPriceCatalogItemRequest(id, unitPrice));
+            var response =
+                _sender.Send(new UpdateUnitPriceCatalogItemCommand(catalogItemId, request.UnitPrice));
+
             return response.WriteToPipeAsync(Response);
         }
     }

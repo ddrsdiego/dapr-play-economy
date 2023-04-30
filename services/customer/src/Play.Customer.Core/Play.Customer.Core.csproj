@@ -17,7 +17,7 @@
     </ItemGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\..\..\common\src\Play.Common\Play.Common.csproj" />
+        <ProjectReference Include="..\..\..\common\src\Play.Common\Play.Common.csproj"/>
     </ItemGroup>
 
 </Project>

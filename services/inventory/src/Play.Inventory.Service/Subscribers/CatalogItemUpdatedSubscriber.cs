@@ -38,7 +38,7 @@
                     await context.Response.WriteAsync("", cancellationToken: context.RequestAborted);
 
                 var sender = context.RequestServices.GetRequiredService<ISender>();
-                var createCatalogItemCommand = readResult.Value.ToCreateCatalogItemCommand();
+                var createCatalogItemCommand = readResult.Value.ToCommand();
 
                 var response = await sender.Send(createCatalogItemCommand, context.RequestAborted);
                 await response.WriteToPipeAsync(context.Response, context.RequestAborted);
@@ -48,7 +48,7 @@
 
     internal static class CreateCatalogItemReqEx
     {
-        public static CreateCatalogItemCommand ToCreateCatalogItemCommand(this CatalogItemUpdated catalogItemUpdated) =>
+        public static CreateCatalogItemCommand ToCommand(this CatalogItemUpdated catalogItemUpdated) =>
             new(catalogItemUpdated.CatalogItemId,
                 catalogItemUpdated.Name,
                 catalogItemUpdated.Description,

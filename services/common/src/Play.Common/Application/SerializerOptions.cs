@@ -17,6 +17,7 @@
         {
             _jsonSerializerOptions = new JsonSerializerOptions
             {
+                WriteIndented = false,
                 DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
                 PropertyNameCaseInsensitive = true,
                 PropertyNamingPolicy = JsonNamingPolicy.CamelCase
@@ -72,6 +73,7 @@
         {
             return _jsonSerializerOptions = new JsonSerializerOptions
             {
+                WriteIndented = false,
                 DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
                 PropertyNamingPolicy = _propertyNamingPolicy,
                 PropertyNameCaseInsensitive = _propertyNameCaseInsensitive,

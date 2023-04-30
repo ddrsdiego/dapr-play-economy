@@ -10,15 +10,16 @@ namespace Play.Catalog.Core.Application.UseCases.UpdateUnitPriceCatalogItem
     using MediatR;
     using Microsoft.AspNetCore.Http;
 
-    public sealed class UpdateUnitPriceCatalogItemCommandHandler : IRequestHandler<UpdateUnitPriceCatalogItemRequest, Response>
+    internal sealed class UpdateUnitPriceCatalogItemCommandHandler : IRequestHandler<UpdateUnitPriceCatalogItemCommand, Response>
     {
         private readonly DaprClient _daprClient;
         private readonly ILogger<UpdateUnitPriceCatalogItemCommandHandler> _logger;
         private readonly IDaprStateEntryRepository<CatalogItemData> _daprStateEntryRepository;
-        
+
         private const string ItemNotFoundError = "ITEM_NOT_FOUND";
 
-        public UpdateUnitPriceCatalogItemCommandHandler(ILogger<UpdateUnitPriceCatalogItemCommandHandler> logger, DaprClient daprClient,
+        public UpdateUnitPriceCatalogItemCommandHandler(ILogger<UpdateUnitPriceCatalogItemCommandHandler> logger,
+            DaprClient daprClient,
             IDaprStateEntryRepository<CatalogItemData> daprStateEntryRepository)
         {
             _logger = logger;
@@ -26,10 +27,12 @@ namespace Play.Catalog.Core.Application.UseCases.UpdateUnitPriceCatalogItem
             _daprStateEntryRepository = daprStateEntryRepository;
         }
 
-        public async Task<Response> Handle(UpdateUnitPriceCatalogItemRequest request,
+        public async Task<Response> Handle(UpdateUnitPriceCatalogItemCommand request,
             CancellationToken cancellationToken)
         {
-            var stateEntry = await _daprStateEntryRepository.GetCustomerByIdAsync(request.CatalogItemId, cancellationToken);
+            var stateEntry =
+                await _daprStateEntryRepository.GetCustomerByIdAsync(request.CatalogItemId, cancellationToken);
+            
             if (stateEntry.IsFailure)
             {
                 return Response.Fail(new Error(ItemNotFoundError,
@@ -48,11 +51,28 @@ namespace Play.Catalog.Core.Application.UseCases.UpdateUnitPriceCatalogItem
                 catalogItem.Descriptor.Value,
                 catalogItem.Price.Value);
 
+            _daprClient.PublishEventAsync(DaprParameters.PubSubName, Topics.CatalogItemUpdated,
+                catalogItemUpdated,
+                cancellationToken).FireAndForget();
+            
             _ = _daprClient.PublishEventAsync(DaprParameters.PubSubName, Topics.CatalogItemUpdated,
                 catalogItemUpdated,
                 cancellationToken);
 
             return Response.Ok(StatusCodes.Status200OK);
+        }
+    }
+
+    internal static class TaskEx
+    {
+        public static void FireAndForget(this Task task)
+        {
+            task.ContinueWith(x =>
+            {
+                if (x.IsCanceled)
+                {
+                }
+            });
         }
     }
 }

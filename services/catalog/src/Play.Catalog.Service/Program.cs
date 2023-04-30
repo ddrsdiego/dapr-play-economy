@@ -11,7 +11,35 @@ namespace Play.Catalog.Service
 
     public abstract class Program
     {
-        public static async Task Main(string[] args) => await CreateHostBuilder(args).Build().RunAsync();
+        public static async Task Main(string[] args)
+        {
+            // var builder = WebApplication.CreateBuilder(args);
+            //
+            // builder.Services.AddMediatR(cfg =>
+            //     cfg.RegisterServicesFromAssemblyContaining<CreateNewCatalogItemCommandHandler>());
+            // builder.Services.AddSwaggerVersioning();
+            // builder.Services.AddDaprStateEntryRepositories();
+            // builder.Services.AddDaprClient(configure => configure.UseJsonSerializationOptions(new JsonSerializerOptions
+            // {
+            //     PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+            //     PropertyNameCaseInsensitive = true
+            // }));
+            // builder.Services.AddControllers(options => options.SuppressAsyncSuffixInActionNames = false);
+            // builder.Host.UseSerilogCustom();
+            //
+            // var app = builder.Build();
+            //
+            // app.UseSwagger();
+            // app.UseSwaggerVersioning();
+            // app.UseRouting();
+            // app.UseCloudEvents();
+            // // app.UseHttpsRedirection();
+            // // app.UseAuthorization();
+            // app.UseEndpoints(endpoints => endpoints.MapControllers());
+            // await app.RunAsync();
+
+            await CreateHostBuilder(args).Build().RunAsync();
+        }
 
         private static IHostBuilder CreateHostBuilder(string[] args) =>
             Host.CreateDefaultBuilder(args)

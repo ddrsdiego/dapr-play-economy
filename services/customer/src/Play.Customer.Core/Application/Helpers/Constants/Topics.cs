@@ -2,12 +2,10 @@
 {
     public static class DaprSettings
     {
-        public static class PubSub
-        {
-            public const string Name = "play-customer-pub-sub";          
-        }
+        public const string PubSubName = "play-customer-service-pubsub";
+        public const string StateStoreName = "play-customer-service-state-store";
     }
-    
+
     public static class Topics
     {
         public const string CustomerUpdated = "play-customer.customer-updated";

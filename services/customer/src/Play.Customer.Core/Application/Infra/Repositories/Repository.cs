@@ -1,28 +1,27 @@
-namespace Play.Customer.Core.Application.Infra.Repositories
+namespace Play.Customer.Core.Application.Infra.Repositories;
+
+using System.Data.Common;
+using System.Threading;
+using System.Threading.Tasks;
+using Common.Application.Infra.Repositories;
+using Microsoft.Extensions.Logging;
+
+public sealed class ConnectionStringOptions
 {
-    using System.Data;
-    using Microsoft.Extensions.Logging;
-    using Microsoft.Extensions.Options;
-    using Npgsql;
+    public string PostgresConnection { get; set; }
+}
 
-    public sealed class ConnectionStringOptions
+public abstract class Repository
+{
+    private readonly IConnectionManager _connectionManager;
+
+    protected Repository(ILogger logger, IConnectionManager connectionManager)
     {
-        public string PostgresConnection { get; set; }
+        _connectionManager = connectionManager;
+        Logger = logger;
     }
-    
-    public abstract class Repository
-    {
-        private readonly IOptions<ConnectionStringOptions> _connectionString;
 
-        protected Repository(ILogger logger, IOptions<ConnectionStringOptions> connectionString)
-        {
-            Logger = logger;
-            _connectionString = connectionString;
-        }
+    protected ILogger Logger { get; }
 
-        protected ILogger Logger { get; }
-        protected string ConnectionString => _connectionString.Value.PostgresConnection;
-
-        protected IDbConnection GetConnection() => new NpgsqlConnection(ConnectionString);
-    }
+    protected Task<DbConnection> GetConnection(CancellationToken cancellationToken = default) => _connectionManager.GetOpenConnectionAsync(cancellationToken);
 }

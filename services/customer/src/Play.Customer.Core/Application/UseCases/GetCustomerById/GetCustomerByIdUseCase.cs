@@ -21,15 +21,15 @@
         public async Task<Response> Handle(GetCustomerByIdRequest request, CancellationToken cancellationToken)
         {
             var customer = await _customerRepository.GetByIdAsync(request.Id);
-            if (customer.Identification.Id == Customer.Default.Identification.Id)
+            if (customer.HasNoValue)
             {
                 var error = new Error("CUSTOMER_NOT_FOUND", $"Client not found for id {request.Id}");
                 return Response.Fail(error);
             }
 
             var response =
-                new GetCustomerByIdResponse(customer.Identification.Id, customer.Name, customer.Email.Value,
-                    customer.CreatedAt);
+                new GetCustomerByIdResponse(customer.Value.Identification.Id, customer.Value.Name, customer.Value.Email.Value,
+                    customer.Value.CreatedAt);
 
             return Response.Ok(ResponseContent.Create(response));
         }

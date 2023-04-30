@@ -16,15 +16,13 @@
     {
         private readonly ISender _sender;
 
-        public GetCustomerByIdEndpoint(ISender sender)
-        {
-            _sender = sender;
-        }
+        public GetCustomerByIdEndpoint(ISender sender) => _sender = sender;
 
         [HttpGet("api/v1/customers/{id}")]
         [ProducesResponseType((int) HttpStatusCode.BadRequest)]
-        [ProducesResponseType(typeof(GetCustomerByIdResponse), (int) HttpStatusCode.OK, MediaTypeNames.Application.Json)]
-        public override Task HandleAsync(string id, CancellationToken cancellationToken = new CancellationToken())
+        [ProducesResponseType(typeof(GetCustomerByIdResponse), (int) HttpStatusCode.OK,
+            MediaTypeNames.Application.Json)]
+        public override Task HandleAsync(string id, CancellationToken cancellationToken = new())
         {
             var response = _sender.Send(new GetCustomerByIdRequest(id), cancellationToken);
             return response.WriteToPipeAsync(Response, cancellationToken: cancellationToken).AsTask();

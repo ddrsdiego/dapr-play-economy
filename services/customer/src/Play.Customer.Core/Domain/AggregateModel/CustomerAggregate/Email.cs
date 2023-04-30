@@ -1,59 +1,62 @@
-﻿namespace Play.Customer.Core.Domain.AggregateModel.CustomerAggregate
+﻿namespace Play.Customer.Core.Domain.AggregateModel.CustomerAggregate;
+
+using CSharpFunctionalExtensions;
+
+public readonly struct Email
 {
-    using System;
-    using System.Globalization;
-    using System.Text.RegularExpressions;
-
-    public readonly struct Email
+    private Email(string value)
     {
-        public Email(string value)
-        {
-            // if (!IsValidEmail(value))
-            //     throw new Exception();
-            
-            Value = value;
-        }
-        
-        public string Value { get; }
-        
-        private static bool IsValidEmail(string email)
-        {
-            if (string.IsNullOrWhiteSpace(email))
-                return false;
+        Value = value;
+    }
 
-            try
-            {
-                email = Regex.Replace(email, @"(@)(.+)$", DomainMapper,
-                    RegexOptions.None, TimeSpan.FromMilliseconds(200));
-                
-                string DomainMapper(Match match)
-                {
-                    var idn = new IdnMapping();
-                    
-                    var domainName = idn.GetAscii(match.Groups[2].Value);
-                    return match.Groups[1].Value + domainName;
-                }
-                
-            }
-            catch (RegexMatchTimeoutException e)
-            {
-                return false;
-            }
-            catch (ArgumentException e)
-            {
-                return false;
-            }
+    public string Value { get; }
 
-            try
-            {
-                return Regex.IsMatch(email,
-                    @"^[^@\s]+@[^@\s]+\.[^@\s]+$",
-                    RegexOptions.IgnoreCase, TimeSpan.FromMilliseconds(250));
-            }
-            catch (RegexMatchTimeoutException)
-            {
-                return false;
-            }
+    public static Result<Email> Create(string electronicMail)
+    {
+        if (string.IsNullOrEmpty(electronicMail))
+            return Result.Failure<Email>("Email should not be empty");
+
+        var atSignIndex = electronicMail.IndexOf('@');
+        if (atSignIndex <= 0 || atSignIndex == electronicMail.Length - 1)
+            return Result.Failure<Email>("Email is invalid");
+
+        var dotIndex = electronicMail.LastIndexOf('.');
+        if (dotIndex <= atSignIndex + 1 || dotIndex == electronicMail.Length - 1)
+            return Result.Failure<Email>("Email is invalid");
+
+        var localPart = electronicMail.Substring(0, atSignIndex);
+        var domainPart = electronicMail.Substring(atSignIndex + 1);
+
+        if (ContainsInvalidCharacters(localPart) || ContainsInvalidCharacters(domainPart))
+            return Result.Failure<Email>("Email is invalid");
+
+        if (localPart.Contains(".."))
+            return Result.Failure<Email>("Email is invalid");
+
+        var domainSegments = domainPart.Split('.');
+
+        foreach (var segment in domainSegments)
+        {
+            if (string.IsNullOrEmpty(segment) || segment.StartsWith("-") || segment.EndsWith("-"))
+                return Result.Failure<Email>("Email is invalid");
         }
+
+        return Result.Success(new Email(electronicMail));
+    }
+        
+    private static bool ContainsInvalidCharacters(string input)
+    {
+        foreach (var c in input)
+        {
+            if (c == '!' || c == '#' || c == '$' || c == '%' || c == '&' || c == '\'' || c == '*' ||
+                c == '+' || c == '-' || c == '/' || c == '=' || c == '?' || c == '^' || c == '_' ||
+                c == '`' || c == '{' || c == '|' || c == '}' || c == '~' || char.IsLetterOrDigit(c) || c == '.')
+            {
+                continue;
+            }
+            return true;
+        }
+
+        return false;
     }
 }

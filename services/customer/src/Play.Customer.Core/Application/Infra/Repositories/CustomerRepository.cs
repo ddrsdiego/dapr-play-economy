@@ -1,178 +1,135 @@
-﻿namespace Play.Customer.Core.Application.Infra.Repositories
+﻿namespace Play.Customer.Core.Application.Infra.Repositories;
+
+using System;
+using System.Threading;
+using System.Threading.Tasks;
+using Common.Application.Infra.Repositories;
+using CSharpFunctionalExtensions;
+using Dapper;
+using Domain.AggregateModel.CustomerAggregate;
+using Microsoft.Extensions.Logging;
+using Statements;
+
+public sealed class CustomerRepository : Repository, ICustomerRepository
 {
-    using System;
-    using System.Data;
-    using System.Threading;
-    using System.Threading.Tasks;
-    using Dapper;
-    using Dapr.Client;
-    using Domain.AggregateModel.CustomerAggregate;
-    using Microsoft.Extensions.Logging;
-    using Microsoft.Extensions.Options;
-    using Statements;
+    private readonly ILogger<CustomerRepository> _logger;
+    private readonly IConnectionManager _connectionManager;
 
-    public sealed class CustomerRepository : Repository, ICustomerRepository
+    public CustomerRepository(ILogger<CustomerRepository> logger, IConnectionManager connectionManager)
+        : base(logger, connectionManager)
     {
-        private readonly AppSettings _appSettings;
-        private readonly DaprClient _daprClient;
-        private readonly IDbConnection _dbConnection;
-        private readonly ILogger<CustomerRepository> _logger;
+        _logger = logger;
+        _connectionManager = connectionManager;
+    }
 
-        public CustomerRepository(ILogger<CustomerRepository> logger, DaprClient daprClient,
-            IOptions<AppSettings> options, IOptions<ConnectionStringOptions> connectionStringOptions,
-            IDbConnection dbConnection)
-            : base(logger, connectionStringOptions)
+    public async Task<Maybe<Customer>> GetByEmailAsync(string email)
+    {
+        try
         {
-            _logger = logger;
-            _daprClient = daprClient;
-            _dbConnection = dbConnection;
-            _appSettings = options.Value;
+            await using var conn = await _connectionManager.GetOpenConnectionAsync();
+            var customerData = await conn.QueryFirstOrDefaultAsync<CustomerData>(
+                CustomerRepositoryStatement.GetByEmailAsync,
+                new
+                {
+                    Email = email
+                });
+
+            return customerData == null ? Maybe<Customer>.None : Maybe<Customer>.From(customerData.ToCustomer());
         }
-
-        public async Task<Customer> GetByIdAsync(string customerId)
+        catch (Exception e)
         {
-            try
-            {
-                using var conn = GetConnection();
-                var customerData = await conn.QueryFirstOrDefaultAsync<CustomerData>(
-                    CustomerRepositoryStatement.GetByIdAsync,
-                    new
-                    {
-                        CustomerId = customerId
-                    });
-
-                return customerData == null ? Customer.Default : customerData.ToCustomer();
-            }
-            catch (Exception e)
-            {
-                Console.WriteLine(e);
-                throw;
-            }
-        }
-
-        public async Task<Customer> GetByEmailAsync(string email)
-        {
-            try
-            {
-                using var conn = GetConnection();
-                var customerData = await conn.QueryFirstOrDefaultAsync<CustomerData>(
-                    CustomerRepositoryStatement.GetByEmailAsync,
-                    new
-                    {
-                        Email = email
-                    });
-
-                return customerData == null ? Customer.Default : customerData.ToCustomer();
-            }
-            catch (Exception e)
-            {
-                Console.WriteLine(e);
-                throw;
-            }
-        }
-
-        public async Task SaveAsync(Customer customer, CancellationToken cancellationToken = default)
-        {
-            try
-            {
-                cancellationToken.ThrowIfCancellationRequested();
-
-                var data = customer.ToCustomerData();
-
-                using var conn = GetConnection();
-                await conn.ExecuteAsync(CustomerRepositoryStatement.SaveAsync,
-                    new
-                    {
-                        data.CustomerId,
-                        data.Document,
-                        data.Email,
-                        data.Name,
-                        data.CreatedAt
-                    });
-            }
-            catch (Exception e)
-            {
-                _logger.LogError(e, "");
-                throw;
-            }
-
-            static async Task SlowExecute(Task task) => await task;
-        }
-
-        public async Task<Customer> GetByDocumentAsync(string document)
-        {
-            try
-            {
-                using var conn = GetConnection();
-                var customerData = await conn.QueryFirstOrDefaultAsync<CustomerData>(
-                    CustomerRepositoryStatement.GetByDocumentAsync,
-                    new
-                    {
-                        Document = document
-                    });
-
-                return customerData == null ? Customer.Default : customerData.ToCustomer();
-            }
-            catch (Exception e)
-            {
-                Console.WriteLine(e);
-                throw;
-            }
-        }
-
-        private async Task<Customer> GetByFormattedKey(string key)
-        {
-            if (key == null) throw new ArgumentNullException(nameof(key));
-
-            var formattedKey = CustomerData.GetKeyFormatted(key);
-
-            try
-            {
-                var state = await _daprClient.GetStateEntryAsync<CustomerData>(_appSettings.DaprSettings.StateStoreName,
-                    formattedKey);
-
-                return state.Value == null ? Customer.Default : state.Value.ToCustomer();
-            }
-            catch (Exception e)
-            {
-                _logger.LogError(e, "");
-                throw;
-            }
-        }
-
-        public async Task UpdateAsync(Customer customer, CancellationToken cancellationToken = default)
-        {
-            try
-            {
-                var data = customer.ToCustomerData();
-
-                using var conn = GetConnection();
-                await conn.ExecuteAsync(CustomerRepositoryStatement.UpdateAsync,
-                    new
-                    {
-                        data.CustomerId,
-                        data.Name,
-                    });
-            }
-            catch (Exception e)
-            {
-                _logger.LogError(e, "");
-                throw;
-            }
-
-            static async Task SlowExecute(Task task) => await task;
+            Console.WriteLine(e);
+            throw;
         }
     }
 
-    internal sealed class CustomerData
+    public async Task<Maybe<Customer>> GetByIdAsync(string id)
     {
-        public string Id { get; set; }
-        public string CustomerId { get; set; }
-        public string Document { get; set; }
-        public string Name { get; set; }
-        public string Email { get; set; }
-        public DateTimeOffset CreatedAt { get; set; }
+        try
+        {
+            CustomerData customerData;
+            
+            await using (var conn = await _connectionManager.GetOpenConnectionAsync())
+            {
+                customerData = await conn.QueryFirstOrDefaultAsync<CustomerData>(CustomerRepositoryStatement.GetByIdAsync,
+                    new
+                    {
+                        CustomerId = id
+                    });
+            }
 
-        public static string GetKeyFormatted(string value) => $"{nameof(Customer).ToLowerInvariant()}-{value}";
+            return customerData == null ? Maybe<Customer>.None : Maybe.From(customerData.ToCustomer());
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine(e);
+            throw;
+        }
+    }
+
+    public async Task SaveAsync(Customer aggregateRoot, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+
+            var data = aggregateRoot.ToCustomerData();
+            await using var conn = await _connectionManager.GetOpenConnectionAsync(cancellationToken);
+            
+            await conn.ExecuteAsync(CustomerRepositoryStatement.SaveAsync,
+                new
+                {
+                    data.CustomerId,
+                    data.Document,
+                    data.Email,
+                    data.Name,
+                    data.CreatedAt
+                });
+        }
+        catch (Exception e)
+        {
+            _logger.LogError(e, "");
+            throw;
+        }
+    }
+
+    public async Task UpdateAsync(Customer aggregateRoot, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var data = aggregateRoot.ToCustomerData();
+
+            await using var conn = await _connectionManager.GetOpenConnectionAsync(cancellationToken);
+            
+            await conn.ExecuteAsync(CustomerRepositoryStatement.UpdateAsync,
+                new {data.CustomerId, data.Name});
+        }
+        catch (Exception e)
+        {
+            _logger.LogError(e, "");
+        }
+    }
+
+    public async Task<Maybe<Customer>> GetByDocumentAsync(string document)
+    {
+        try
+        {
+            var documentResult = Document.Create(document);
+
+            await using var conn = await _connectionManager.GetOpenConnectionAsync();
+            var customerData = await conn.QueryFirstOrDefaultAsync<CustomerData>(
+                CustomerRepositoryStatement.GetByDocumentAsync,
+                new
+                {
+                    Document = documentResult.Value.Value
+                });
+
+            return customerData == null ? Maybe<Customer>.None : Maybe<Customer>.From(customerData.ToCustomer());
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine(e);
+            throw;
+        }
     }
 }

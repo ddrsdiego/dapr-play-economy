@@ -1,7 +1,6 @@
 ﻿namespace Play.Common.Application
 {
     using System;
-    using System.Buffers;
     using System.IO.Pipelines;
     using System.Runtime.CompilerServices;
     using System.Text;
@@ -14,16 +13,19 @@
     {
         private static readonly SerializerOptions SerializerOptions;
 
-        private readonly object _sync;
+        private readonly object _syncSerializeString;
+        private readonly object _syncSerializeUtf8Bytes;
         private Type InputType { get; }
         private string ContentAsJsonString { get; set; }
-        private byte[] ContentAsJsonUtf8Bytes { get; set; }
+        private ReadOnlyMemory<byte> ContentAsJsonUtf8Bytes { get; set; }
+
         private JsonSerializerOptions JsonSerializerOptions { get; }
 
         private ResponseContent(byte[] contentAsJsonByte, string contentAsJsonString, Type inputType,
             SerializerOptions serializerOptions)
         {
-            _sync = new object();
+            _syncSerializeString = new object();
+            _syncSerializeUtf8Bytes = new object();
             InputType = inputType;
             ContentAsJsonUtf8Bytes = contentAsJsonByte;
             ContentAsJsonString = contentAsJsonString;
@@ -47,8 +49,8 @@
         /// <returns></returns>
         public static ResponseContent Create<TContent>(TContent contentData)
         {
-            var contentAsJsonString = JsonSerializer.Serialize(contentData, SerializerOptions.GetOptions());
-            return new ResponseContent(null, contentAsJsonString, contentData.GetType(), SerializerOptions);
+            var contentAsUtf8Bytes = JsonSerializer.SerializeToUtf8Bytes(contentData, SerializerOptions.GetOptions());
+            return new ResponseContent(contentAsUtf8Bytes, string.Empty, contentData.GetType(), SerializerOptions);
         }
 
         /// <summary>
@@ -60,11 +62,11 @@
         /// <returns></returns>
         public static ResponseContent Create<TContent>(TContent contentData, SerializerOptions serializerOptions = null)
         {
-            var contentAsJsonString = serializerOptions == null
-                ? JsonSerializer.Serialize(contentData)
-                : JsonSerializer.Serialize(contentData, serializerOptions.GetOptions());
+            var contentAsUtf8Bytes = serializerOptions == null
+                ? JsonSerializer.SerializeToUtf8Bytes(contentData)
+                : JsonSerializer.SerializeToUtf8Bytes(contentData, serializerOptions.GetOptions());
 
-            return new ResponseContent(null, contentAsJsonString, contentData.GetType(), serializerOptions);
+            return new ResponseContent(contentAsUtf8Bytes, string.Empty, contentData.GetType(), serializerOptions);
         }
 
         /// <summary>
@@ -112,27 +114,26 @@
         /// <returns></returns>
         public object GetRaw(Type inputType)
         {
-            var reader = new Utf8JsonReader(new ReadOnlySequence<byte>(ValueAsJsonUtf8Bytes));
+            var reader = new Utf8JsonReader(ValueAsJsonUtf8Bytes);
             return JsonSerializer.Deserialize(ref reader, inputType, JsonSerializerOptions);
         }
 
         /// <summary>
         ///Get serialized content in Utf8 Bytes
         /// </summary>
-        public byte[] ValueAsJsonUtf8Bytes
+        public ReadOnlySpan<byte> ValueAsJsonUtf8Bytes
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get
             {
-                lock (_sync)
+                lock (_syncSerializeUtf8Bytes)
                 {
-                    if (ContentAsJsonUtf8Bytes is not null)
-                        return ContentAsJsonUtf8Bytes;
+                    if (ContentAsJsonUtf8Bytes.Length > 0) return ContentAsJsonUtf8Bytes.Span;
 
                     var value = JsonSerializer.Deserialize(ValueAsJsonString, InputType, JsonSerializerOptions);
                     ContentAsJsonUtf8Bytes = JsonSerializer.SerializeToUtf8Bytes(value, JsonSerializerOptions);
 
-                    return ContentAsJsonUtf8Bytes;
+                    return ContentAsJsonUtf8Bytes.Span;
                 }
             }
         }
@@ -145,24 +146,26 @@
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get
             {
-                if (string.IsNullOrEmpty(ContentAsJsonString))
-                    ContentAsJsonString = JsonSerializer.Serialize(GetRaw(InputType), InputType, JsonSerializerOptions);
+                lock (_syncSerializeString)
+                {
+                    if (!string.IsNullOrEmpty(ContentAsJsonString)) return ContentAsJsonString;
 
-                return ContentAsJsonString;
+                    ContentAsJsonString = JsonSerializer.Serialize(GetRaw(InputType), InputType, JsonSerializerOptions);
+                    return ContentAsJsonString;
+                }
             }
         }
 
         public bool HasValue
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            get => !string.IsNullOrEmpty(ContentAsJsonString) || ContentAsJsonUtf8Bytes?.Length > 0;
+            get => !string.IsNullOrEmpty(ContentAsJsonString) || ContentAsJsonUtf8Bytes.Length > 0;
         }
 
         /// <summary>
         /// Write in Response.Body using PipeWriter by reference being serialized in UTF8
         /// </summary>
         /// <param name="pipe"></param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void WriteToPipe(PipeWriter pipe) => WriteToPipe(pipe, Encoding.UTF8.GetEncoder());
 
         /// <summary>
@@ -173,10 +176,10 @@
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void WriteToPipe(PipeWriter pipe, Encoder encoder)
         {
-            Span<char> charSpan = stackalloc char[ValueAsJsonString.Length];
-            for (int counter = 0; counter < ValueAsJsonString.Length; counter++)
+            Span<char> charSpan = stackalloc char[ValueAsJsonUtf8Bytes.Length];
+            for (var counter = 0; counter < ValueAsJsonUtf8Bytes.Length; counter++)
             {
-                charSpan[counter] = ValueAsJsonString[counter];
+                charSpan[counter] = (char) ValueAsJsonUtf8Bytes[counter];
             }
 
             var bytesNeeded = encoder.GetByteCount(charSpan, true);

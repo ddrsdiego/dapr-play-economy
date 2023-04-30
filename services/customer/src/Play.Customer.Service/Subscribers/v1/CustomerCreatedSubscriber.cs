@@ -11,9 +11,9 @@ namespace Play.Customer.Service.Subscribers.v1
     using Microsoft.AspNetCore.Routing;
     using Microsoft.Extensions.DependencyInjection;
     using Microsoft.Extensions.Logging;
-    using Play.Common.Application;
+    using Common.Application;
     using Play.Customer.Core.Application.Helpers.Constants;
-    using Play.Customer.Core.Domain.AggregateModel.CustomerAggregate;
+    using Core.Domain.AggregateModel.CustomerAggregate;
 
     internal static class CustomerCreatedSubscriber
     {
@@ -33,7 +33,7 @@ namespace Play.Customer.Service.Subscribers.v1
                     var response = Response.Fail(error);
                     await response.WriteToPipeAsync(context.Response);
                 }
-            }).WithTopic(DaprSettings.PubSub.Name, Topics.CustomerRegistered);
+            }).WithTopic(DaprSettings.PubSubName, Topics.CustomerRegistered);
         }
     }
 
