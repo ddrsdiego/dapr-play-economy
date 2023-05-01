@@ -10,7 +10,9 @@ using Polly;
 
 public interface IConnectionManager : IAsyncDisposable
 {
-    // DbConnection Connection { get; }
+    string ConnectionString { get; }
+
+    Task BeginTransaction(CancellationToken cancellationToken = default);
 
     ITransactionManager TransactionManager { get; }
 
@@ -21,40 +23,46 @@ public interface IConnectionManager : IAsyncDisposable
 
 public sealed class ConnectionManager : IConnectionManager
 {
-    private readonly DbProviderFactory _providerFactory;
-    private readonly string _connectionString;
     private readonly IAsyncPolicy _resiliencePolicy;
+    private readonly DbProviderFactory _providerFactory;
 
     public ConnectionManager(DbProviderFactory providerFactory, string connectionString,
         IAsyncPolicy resiliencePolicy = null)
     {
         _providerFactory = providerFactory;
-        _connectionString = connectionString;
+        ConnectionString = connectionString;
         _resiliencePolicy = resiliencePolicy;
-        TransactionManager = new TransactionManager();
     }
 
-    // public DbConnection Connection { get; private set; }
+    private DbConnection _connection;
+    private ITransactionManager _transactionManager;
 
-    public ITransactionManager TransactionManager { get; }
+    public Task BeginTransaction(CancellationToken cancellationToken = default)
+    {
+        TransactionManager ??= new TransactionManager();
+        TransactionManager.BeginTransaction();
+        
+        return Task.CompletedTask;
+    }
+
+    public ITransactionManager TransactionManager { get; private set;}
+
+    public string ConnectionString { get; set; }
 
     public async Task<DbConnection> GetOpenConnectionAsync(CancellationToken cancellationToken = default)
     {
-        DbConnection connection;
-
         if (_resiliencePolicy != null)
-            connection = await _resiliencePolicy.ExecuteAsync(
+            _connection = await _resiliencePolicy.ExecuteAsync(
                 async () => await TryOpenConnectionAsync(cancellationToken));
         else
-            connection = await TryOpenConnectionAsync(cancellationToken);
+            _connection = await TryOpenConnectionAsync(cancellationToken);
 
-        return connection;
+        return _connection;
     }
 
     public Task CloseAsync(CancellationToken cancellationToken = default)
     {
-        // return Connection.State != ConnectionState.Closed ? Connection.CloseAsync() : Task.CompletedTask;
-        return Task.CompletedTask;
+        return _connection?.State != ConnectionState.Closed ? _connection?.CloseAsync() : Task.CompletedTask;
     }
 
     private async Task<DbConnection> TryOpenConnectionAsync(CancellationToken cancellationToken = default)
@@ -65,7 +73,7 @@ public sealed class ConnectionManager : IConnectionManager
             cancellationToken.ThrowIfCancellationRequested();
 
             dbConnection = _providerFactory.CreateConnection();
-            dbConnection.ConnectionString = _connectionString;
+            dbConnection.ConnectionString = ConnectionString;
 
             if (dbConnection.State != ConnectionState.Open)
                 await dbConnection.OpenAsync(cancellationToken);
@@ -91,7 +99,7 @@ public sealed class ConnectionManager : IConnectionManager
 
     public ValueTask DisposeAsync()
     {
-        TransactionManager?.Dispose();
+        _transactionManager?.Dispose();
         return ValueTask.CompletedTask;
     }
 }

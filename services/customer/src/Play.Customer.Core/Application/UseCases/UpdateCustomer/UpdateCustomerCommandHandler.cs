@@ -49,13 +49,15 @@ internal sealed class UpdateCustomerCommandHandler : IRequestHandler<UpdateCusto
 
             customer.Value.UpdateName(command.Name);
 
-            await using var uow = _unitOfWorkFactory.Create(cancellationToken);
+            await using var uow = await _unitOfWorkFactory.CreateAsync(cancellationToken);
 
             var customerNameUpdated = new CustomerNameUpdated(customer.Value.Identification.Id, customer.Value.Name);
 
             await _customerRepository.UpdateAsync(customer.Value, cancellationToken);
             await _outboxMessagesRepository.SaveAsync(nameof(CustomerNameUpdated), Topics.CustomerUpdated,
                 customerNameUpdated, cancellationToken);
+            
+            await uow.SaveChangesAsync(cancellationToken);
         }
         catch (Exception e)
         {

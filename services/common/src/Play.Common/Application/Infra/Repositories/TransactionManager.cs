@@ -18,10 +18,15 @@ public interface ITransactionManager : IDisposable
 internal sealed class TransactionManager : ITransactionManager
 {
     private const int MaximumTimeoutInSeconds = 1;
-
-    private TransactionScope _transactionScope;
     private bool _disposed;
-
+    private TransactionScope _transactionScope;
+    
+    public TransactionManager()
+    {
+        _transactionScope = null;
+        _disposed = false;
+    }
+    
     public void BeginTransaction()
     {
         if (_transactionScope != null)
@@ -39,12 +44,11 @@ internal sealed class TransactionManager : ITransactionManager
     public Task CommitAsync(CancellationToken cancellationToken = default)
     {
         if (_transactionScope == null)
+        {
             throw new InvalidOperationException("There is no transaction in progress.");
+        }
 
         _transactionScope.Complete();
-
-        TryDisposeTransactionScope();
-
         return Task.CompletedTask;
     }
 
@@ -72,15 +76,16 @@ internal sealed class TransactionManager : ITransactionManager
 
     private void Dispose(bool disposing)
     {
-        if (!_disposed)
+        if (_disposed)
+            return;
+        
+        if (disposing)
         {
-            if (disposing)
-            {
-                _transactionScope?.Dispose();
-            }
-
-            _disposed = true;
+            _transactionScope?.Dispose();
+            _transactionScope = null;
         }
+
+        _disposed = true;
     }
 
     ~TransactionManager()

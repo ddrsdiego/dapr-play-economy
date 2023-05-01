@@ -11,5 +11,6 @@ public sealed class OutboxMessageData
     public string Payload { get; set; }
     public string Status { get; set; }
     public string Type { get; set; }
+    public int NumberAttempts { get; set; }
     public DateTimeOffset CreatedAt { get; set; }
 }

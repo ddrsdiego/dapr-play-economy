@@ -2,6 +2,7 @@
 
 using System;
 using System.Linq;
+using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using Dapper;
@@ -24,6 +25,8 @@ public interface IOutboxMessagesRepository
     /// <param name="cancellationToken"></param>
     /// <returns></returns>
     Task SaveAsync(string eventName, string topicName, object payload, CancellationToken cancellationToken = default);
+
+    Task IncrementNumberAttemptsAsync(OutBoxMessage outBoxMessage, CancellationToken cancellationToken);
 }
 
 public sealed class OutboxMessagesRepository : Repository, IOutboxMessagesRepository
@@ -44,7 +47,7 @@ public sealed class OutboxMessagesRepository : Repository, IOutboxMessagesReposi
             cancellationToken.ThrowIfCancellationRequested();
 
             await using var conn = await _connectionManager.GetOpenConnectionAsync(cancellationToken);
-            
+
             var resultSet = await conn.QueryAsync<OutboxMessageData>(
                 OutboxMessagesStatements.GetUnprocessedAsync);
 
@@ -69,7 +72,7 @@ public sealed class OutboxMessagesRepository : Repository, IOutboxMessagesReposi
         try
         {
             var outboxMessagePublished = outBoxMessages.ToMessagePublished();
-            
+
             await using var conn = await _connectionManager.GetOpenConnectionAsync(cancellationToken);
 
             await conn.ExecuteAsync(OutboxMessagesStatements.UpdateToPublishedAsync,
@@ -89,13 +92,39 @@ public sealed class OutboxMessagesRepository : Repository, IOutboxMessagesReposi
     public Task SaveAsync(string eventName, string topicName, object payload,
         CancellationToken cancellationToken = default)
     {
-        var payloadJson = System.Text.Json.JsonSerializer.Serialize(payload);
-        var outboxMessage = new OutBoxMessage(eventName, topicName, payloadJson);
+        var payloadJson = JsonSerializer.Serialize(payload, new JsonSerializerOptions
+        {
+            WriteIndented = false,
+            PropertyNameCaseInsensitive = true,
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+        });
 
-        return SaveAsync(outboxMessage, cancellationToken);
+        var outboxMessage = new OutBoxMessage(eventName, topicName, payloadJson, payload.GetType().FullName);
+
+        return InternalSaveAsync(outboxMessage, cancellationToken);
     }
 
-    private async Task SaveAsync(OutBoxMessage outBoxMessage, CancellationToken cancellationToken = default)
+    public async Task IncrementNumberAttemptsAsync(OutBoxMessage outBoxMessage, CancellationToken cancellationToken)
+    {
+        try
+        {
+            outBoxMessage.IncrementNumberAttempts();
+        
+            await using var conn = await _connectionManager.GetOpenConnectionAsync(cancellationToken);
+            await conn.ExecuteAsync(OutboxMessagesStatements.IncrementNumberAttempts,
+                new
+                {
+                    outBoxMessage.Id,
+                    outBoxMessage.NumberAttempts
+                });
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine(e);
+        }
+    }
+
+    private async Task InternalSaveAsync(OutBoxMessage outBoxMessage, CancellationToken cancellationToken = default)
     {
         try
         {

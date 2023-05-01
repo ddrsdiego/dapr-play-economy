@@ -1,23 +1,33 @@
 ﻿namespace Play.Common.Application.Infra;
 
 using System.Threading;
+using System.Threading.Tasks;
+using Repositories;
 
 public interface IUnitOfWorkFactory
 {
-    IUnitOfWork Create(CancellationToken cancellationToken = default);
+    /// <summary>
+    /// Create a new unit of work.
+    /// </summary>
+    /// <param name="cancellationToken"></param>
+    /// <returns></returns>
+    Task<IUnitOfWork> CreateAsync(CancellationToken cancellationToken = default);
 }
 
 public sealed class UnitOfWorkFactory : IUnitOfWorkFactory
 {
-    private readonly string _connectionString;
+    private readonly IConnectionManager _connectionManager;
 
-    public UnitOfWorkFactory(string connectionString)
+    public UnitOfWorkFactory(IConnectionManager connectionManager)
     {
-        _connectionString = connectionString;
+        _connectionManager = connectionManager;
     }
 
-    public IUnitOfWork Create(CancellationToken cancellationToken = default)
+    public async Task<IUnitOfWork> CreateAsync(CancellationToken cancellationToken = default)
     {
-        return UnitOfWorkPostgres.Create(_connectionString, cancellationToken);
+        var unitOfWork = UnitOfWorkPostgres.Create(_connectionManager, cancellationToken);
+        await unitOfWork.InitializeTransactionAsync(cancellationToken);
+
+        return unitOfWork;
     }
 }

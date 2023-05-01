@@ -6,7 +6,9 @@ internal static class OutboxMessagesStatements
         "INSERT INTO public.\"BoxMessages\"(\"Id\", \"EventName\", \"TopicName\", \"FullName\", \"Payload\", \"Status\", \"CreatedAt\", \"BoxType\") VALUES (@Id, @EventName, @TopicName, @FullName, @Payload::jsonb, @Status, @CreatedAt, 'OUT')";
 
     public const string GetUnprocessedAsync =
-        "SELECT * FROM \"BoxMessages\" where \"Status\" = 'Pending' and \"NumberAttempts\" <= 5";
+        "SELECT * FROM \"BoxMessages\" where \"Status\" = 'Pending' AND \"BoxType\" = 'OUT' AND \"NumberAttempts\" <= 5";
 
     public const string UpdateToPublishedAsync = "UPDATE \"BoxMessages\" SET \"Status\" = @Status, \"SentAt\" = @SentAt WHERE \"Id\" = @Id";
+    
+    public const string IncrementNumberAttempts = "UPDATE \"BoxMessages\" SET \"NumberAttempts\" = @NumberAttempts WHERE \"Id\" = @Id";
 }

@@ -4,7 +4,8 @@ using System;
 
 public abstract class BoxMessage
 {
-    protected BoxMessage(string id, string eventName, string topicName, string status, string payload, string type)
+    protected BoxMessage(string id, string eventName, string topicName, string status, string payload, string fullName,
+        string type, int numberAttempts)
     {
         Id = id;
         EventName = eventName;
@@ -12,7 +13,8 @@ public abstract class BoxMessage
         Status = status;
         Payload = payload;
         Type = type;
-        FullName = payload.GetType().FullName;
+        FullName = fullName;
+        NumberAttempts = numberAttempts;
     }
 
     public string Id { get; }
@@ -22,6 +24,6 @@ public abstract class BoxMessage
     public string Status { get; }
     public string Payload { get; }
     public string Type { get; }
-
+    public int NumberAttempts { get; set; }
     public DateTimeOffset CreatedAt { get; } = DateTimeOffset.UtcNow;
 }

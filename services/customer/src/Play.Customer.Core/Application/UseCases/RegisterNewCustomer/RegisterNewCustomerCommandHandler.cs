@@ -1,6 +1,5 @@
 ﻿namespace Play.Customer.Core.Application.UseCases.RegisterNewCustomer;
 
-using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
@@ -41,13 +40,14 @@ internal sealed class RegisterNewCustomerCommandHandler : IRequestHandler<Regist
             return Response.Fail(Errors.Customer.UserAlreadyExists(command.Email));
 
         var newCustomer = new Customer(command.Document, command.Name, command.Email);
-        await using var uow = _unitOfWorkFactory.Create(cancellationToken);
-        
+        await using var uow = await _unitOfWorkFactory.CreateAsync(cancellationToken);
+
         await _customerRepository.SaveAsync(newCustomer, cancellationToken);
         foreach (var notification in newCustomer.DomainEvents)
         {
             var @event = (NewCustomerCreated) notification;
-            await _outboxMessagesRepository.SaveAsync(nameof(NewCustomerCreated), Topics.CustomerRegistered, @event, cancellationToken);
+            await _outboxMessagesRepository.SaveAsync(nameof(NewCustomerCreated), Topics.CustomerRegistered, @event,
+                cancellationToken);
         }
 
         var responseContent = new RegisterNewCustomerResponse(newCustomer.Identification.Id, newCustomer.Name,

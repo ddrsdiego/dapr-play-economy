@@ -18,7 +18,8 @@ internal sealed class OutboxMessagesWorker : BackgroundService
     private readonly IUnitOfWorkFactory _unitOfWorkFactory;
     private readonly IOutboxMessagesRepository _outboxMessagesRepository;
 
-    public OutboxMessagesWorker(IUnitOfWorkFactory unitOfWorkFactory, IOutboxMessagesRepository outboxMessagesRepository,
+    public OutboxMessagesWorker(IUnitOfWorkFactory unitOfWorkFactory,
+        IOutboxMessagesRepository outboxMessagesRepository,
         DaprClient daprClient)
     {
         _daprClient = daprClient;
@@ -30,7 +31,8 @@ internal sealed class OutboxMessagesWorker : BackgroundService
     {
         while (!stoppingToken.IsCancellationRequested)
         {
-            var messagesPendingToPublish = await _outboxMessagesRepository.GetMessagesPendingToPublishAsync(stoppingToken);
+            var messagesPendingToPublish =
+                await _outboxMessagesRepository.GetMessagesPendingToPublishAsync(stoppingToken);
             if (messagesPendingToPublish.Length > 0)
             {
                 for (var index = 0; index < messagesPendingToPublish.Length; index++)
@@ -38,20 +40,22 @@ internal sealed class OutboxMessagesWorker : BackgroundService
                     var outBoxMessage = messagesPendingToPublish[index];
                     try
                     {
-                        await using var uow = _unitOfWorkFactory.Create(stoppingToken);
+                        await using var uow = await _unitOfWorkFactory.CreateAsync(stoppingToken);
                         
                         await _daprClient.PublishEventAsync(PubSubName, outBoxMessage.TopicName, outBoxMessage.ToMessageEnvelope(), stoppingToken);
                         await _outboxMessagesRepository.UpdateToPublishedAsync(outBoxMessage.ToMessagePublished(), stoppingToken);
+                        
+                        await uow.SaveChangesAsync(stoppingToken);
                     }
                     catch (Exception e)
                     {
+                        await _outboxMessagesRepository.IncrementNumberAttemptsAsync(outBoxMessage.ToMessagePublished(), stoppingToken);
                         Console.WriteLine(e);
-                        throw;
                     }
                 }
             }
 
-            await Task.Delay(1_000, stoppingToken);
+            await Task.Delay(5_000, stoppingToken);
         }
     }
 }

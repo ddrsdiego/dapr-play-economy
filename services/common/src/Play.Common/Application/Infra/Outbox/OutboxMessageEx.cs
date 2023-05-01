@@ -25,8 +25,11 @@ public static class OutboxMessageEx
     {
         try
         {
-            return new OutBoxMessage(outboxMessageData.Id, outboxMessageData.EventName, outboxMessageData.TopicName,
-                outboxMessageData.Status, outboxMessageData.Payload);
+            var outBoxMessage = new OutBoxMessage(outboxMessageData.Id, outboxMessageData.EventName,
+                outboxMessageData.TopicName, outboxMessageData.Status, outboxMessageData.Payload, null,
+                outboxMessageData.NumberAttempts);
+
+            return outBoxMessage;
         }
         catch (Exception e)
         {

@@ -1,7 +1,6 @@
 ﻿namespace Play.Customer.Core.Application.IoC
 {
     using System;
-    using System.Data;
     using System.Data.Common;
     using Common.Application.Infra;
     using Common.Application.Infra.Repositories;
@@ -44,9 +43,8 @@
             
             services.TryAddSingleton<IUnitOfWorkFactory>(sp =>
             {
-                var connectionString =
-                    sp.GetRequiredService<IConfiguration>().GetSection(PostgresConnectionStringSection).Value;
-                return new UnitOfWorkFactory(connectionString);
+                var connectionManager = sp.GetRequiredService<IConnectionManager>();
+                return new UnitOfWorkFactory(connectionManager);
             });
             
             return services;

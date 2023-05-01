@@ -5,7 +5,7 @@ using System;
 public sealed class OutBoxMessage : BoxMessage
 {
     public const string BoxType = "OUT";
-    
+
     private static class OutBoxMessageStatus
     {
         public const string Pending = nameof(Pending);
@@ -13,15 +13,20 @@ public sealed class OutBoxMessage : BoxMessage
         public const string Failed = nameof(Failed);
     }
 
-    public OutBoxMessage(string eventName, string topicName, string payload)
-        : this(Guid.NewGuid().ToString(), eventName, topicName, OutBoxMessageStatus.Pending, payload)
+    public OutBoxMessage(string eventName, string topicName, string payload, string fullName)
+        : this(Guid.NewGuid().ToString(), eventName, topicName, OutBoxMessageStatus.Pending, payload, fullName, 0)
     {
     }
 
-    internal OutBoxMessage(string id, string eventName, string topicName, string status, string payload)
-        : base(id, eventName, topicName, status, payload, BoxType)
+    internal OutBoxMessage(string id, string eventName, string topicName, string status, string payload,
+        string fullName, int numberAttempts)
+        : base(id, eventName, topicName, status, payload, fullName, BoxType, numberAttempts)
     {
     }
 
-    public OutBoxMessage ToMessagePublished() => new(Id, EventName, TopicName, OutBoxMessageStatus.Published, Payload);
+    public OutBoxMessage ToMessagePublished() => new(Id, EventName, TopicName, OutBoxMessageStatus.Published, Payload,
+        FullName, NumberAttempts);
+
+
+    public void IncrementNumberAttempts() => NumberAttempts++;
 }
