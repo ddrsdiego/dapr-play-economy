@@ -9,6 +9,8 @@ public static class OutboxMessageEx
         var outboxMessageData = new OutboxMessageData
         {
             Id = outBoxMessage.Id,
+            PubSubName = outBoxMessage.PubSubName,
+            ProcessorId = outBoxMessage.ProcessorId,
             EventName = outBoxMessage.EventName,
             TopicName = outBoxMessage.TopicName,
             FullName = outBoxMessage.FullName,
@@ -25,8 +27,9 @@ public static class OutboxMessageEx
     {
         try
         {
-            var outBoxMessage = new OutBoxMessage(outboxMessageData.Id, outboxMessageData.EventName,
-                outboxMessageData.TopicName, outboxMessageData.Status, outboxMessageData.Payload, null,
+            var outBoxMessage = new OutBoxMessage(outboxMessageData.Id, outboxMessageData.ProcessorId,
+                outboxMessageData.PubSubName, outboxMessageData.EventName, outboxMessageData.TopicName,
+                outboxMessageData.Status, outboxMessageData.Payload, outboxMessageData.FullName,
                 outboxMessageData.NumberAttempts);
 
             return outBoxMessage;

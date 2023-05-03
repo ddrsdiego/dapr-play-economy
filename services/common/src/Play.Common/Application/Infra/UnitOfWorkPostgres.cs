@@ -23,12 +23,12 @@ public sealed class UnitOfWorkPostgres : UnitOfWork
                 TimeSpan.FromMilliseconds(500)
             });
     }
-    
+
     private UnitOfWorkPostgres(string connectionString, CancellationToken cancellationToken)
         : base(new ConnectionManager(NpgsqlFactory.Instance, connectionString, ResiliencePolicy), cancellationToken)
     {
     }
-    
+
     public static IUnitOfWork Create(IConnectionManager connectionManager, CancellationToken cancellationToken)
     {
         return new UnitOfWorkPostgres(connectionManager.ConnectionString, cancellationToken);

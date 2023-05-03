@@ -12,12 +12,12 @@
       <PackageReference Include="Dapr.Client" Version="1.10.0" />
       <PackageReference Include="MediatR" Version="12.0.1" />
       <PackageReference Include="MediatR.Extensions.Microsoft.DependencyInjection" Version="11.0.0" />
-      <PackageReference Include="Npgsql" Version="7.0.1" />
+      <PackageReference Include="Npgsql" Version="7.0.4" />
       <PackageReference Include="Swashbuckle.AspNetCore" Version="6.4.0" />
     </ItemGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\..\..\common\src\Play.Common\Play.Common.csproj"/>
+        <ProjectReference Include="..\..\..\common\src\Play.Common\Play.Common.csproj" />
     </ItemGroup>
 
 </Project>

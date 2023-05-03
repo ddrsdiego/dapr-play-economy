@@ -11,8 +11,6 @@ public interface ITransactionManager : IDisposable
     void BeginTransaction();
 
     Task CommitAsync(CancellationToken cancellationToken = default);
-
-    Task RollbackAsync(CancellationToken cancellationToken = default);
 }
 
 internal sealed class TransactionManager : ITransactionManager
@@ -20,25 +18,29 @@ internal sealed class TransactionManager : ITransactionManager
     private const int MaximumTimeoutInSeconds = 1;
     private bool _disposed;
     private TransactionScope _transactionScope;
-    
+
     public TransactionManager()
     {
         _transactionScope = null;
         _disposed = false;
     }
-    
+
     public void BeginTransaction()
     {
         if (_transactionScope != null)
+        {
             throw new InvalidOperationException("A transaction is already in progress.");
+        }
 
-        var options = new TransactionOptions
+        _transactionScope = CreateNewTransaction();
+    }
+
+    private static TransactionScope CreateNewTransaction()
+    {
+        return new TransactionScope(TransactionScopeOption.Required, new TransactionOptions
         {
             IsolationLevel = IsolationLevel.ReadCommitted,
-        };
-
-        _transactionScope =
-            new TransactionScope(TransactionScopeOption.Required, options, TransactionScopeAsyncFlowOption.Enabled);
+        }, TransactionScopeAsyncFlowOption.Enabled);
     }
 
     public Task CommitAsync(CancellationToken cancellationToken = default)
@@ -58,16 +60,6 @@ internal sealed class TransactionManager : ITransactionManager
         _transactionScope = null;
     }
 
-    public Task RollbackAsync(CancellationToken cancellationToken = default)
-    {
-        if (_transactionScope == null)
-            throw new InvalidOperationException("There is no transaction in progress.");
-
-        TryDisposeTransactionScope();
-
-        return Task.CompletedTask;
-    }
-
     public void Dispose()
     {
         Dispose(true);
@@ -78,12 +70,9 @@ internal sealed class TransactionManager : ITransactionManager
     {
         if (_disposed)
             return;
-        
+
         if (disposing)
-        {
-            _transactionScope?.Dispose();
-            _transactionScope = null;
-        }
+            TryDisposeTransactionScope();
 
         _disposed = true;
     }

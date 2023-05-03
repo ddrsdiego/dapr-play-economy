@@ -25,6 +25,8 @@ public static class Errors
 
 internal sealed class UpdateCustomerCommandHandler : IRequestHandler<UpdateCustomerCommand, Response>
 {
+    private const string PubSubName = "play-customer-service-pubsub";
+
     private readonly IUnitOfWorkFactory _unitOfWorkFactory;
     private readonly ICustomerRepository _customerRepository;
     private readonly IOutboxMessagesRepository _outboxMessagesRepository;
@@ -48,16 +50,14 @@ internal sealed class UpdateCustomerCommandHandler : IRequestHandler<UpdateCusto
 
 
             customer.Value.UpdateName(command.Name);
-
-            await using var uow = await _unitOfWorkFactory.CreateAsync(cancellationToken);
-
             var customerNameUpdated = new CustomerNameUpdated(customer.Value.Identification.Id, customer.Value.Name);
 
-            await _customerRepository.UpdateAsync(customer.Value, cancellationToken);
-            await _outboxMessagesRepository.SaveAsync(nameof(CustomerNameUpdated), Topics.CustomerUpdated,
-                customerNameUpdated, cancellationToken);
-            
-            await uow.SaveChangesAsync(cancellationToken);
+            await using var unitOfWork = await _unitOfWorkFactory.CreateAsync(cancellationToken);
+
+            unitOfWork.AddToContext(async () => await _customerRepository.UpdateAsync(customer.Value, cancellationToken));
+            unitOfWork.AddToContext(async () => await _outboxMessagesRepository.SaveAsync(PubSubName, nameof(CustomerNameUpdated), Topics.CustomerUpdated, customerNameUpdated, cancellationToken));
+
+            await unitOfWork.SaveChangesAsync();
         }
         catch (Exception e)
         {

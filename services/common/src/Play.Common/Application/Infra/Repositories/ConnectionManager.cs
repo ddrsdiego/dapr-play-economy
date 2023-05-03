@@ -8,11 +8,11 @@ using System.Threading.Tasks;
 using Npgsql;
 using Polly;
 
-public interface IConnectionManager : IAsyncDisposable
+public interface IConnectionManager : IDisposable
 {
     string ConnectionString { get; }
 
-    Task BeginTransaction(CancellationToken cancellationToken = default);
+    Task BeginTransactionAsync(CancellationToken cancellationToken = default);
 
     ITransactionManager TransactionManager { get; }
 
@@ -23,6 +23,7 @@ public interface IConnectionManager : IAsyncDisposable
 
 public sealed class ConnectionManager : IConnectionManager
 {
+    private readonly SemaphoreSlim _semaphore;
     private readonly IAsyncPolicy _resiliencePolicy;
     private readonly DbProviderFactory _providerFactory;
 
@@ -32,42 +33,49 @@ public sealed class ConnectionManager : IConnectionManager
         _providerFactory = providerFactory;
         ConnectionString = connectionString;
         _resiliencePolicy = resiliencePolicy;
+        _semaphore = new SemaphoreSlim(1, 1);
     }
 
-    private DbConnection _connection;
-    private ITransactionManager _transactionManager;
-
-    public Task BeginTransaction(CancellationToken cancellationToken = default)
+    public Task BeginTransactionAsync(CancellationToken cancellationToken = default)
     {
         TransactionManager ??= new TransactionManager();
         TransactionManager.BeginTransaction();
-        
+
         return Task.CompletedTask;
     }
 
-    public ITransactionManager TransactionManager { get; private set;}
+    public ITransactionManager TransactionManager { get; private set; }
 
     public string ConnectionString { get; set; }
 
     public async Task<DbConnection> GetOpenConnectionAsync(CancellationToken cancellationToken = default)
     {
-        if (_resiliencePolicy != null)
-            _connection = await _resiliencePolicy.ExecuteAsync(
-                async () => await TryOpenConnectionAsync(cancellationToken));
-        else
-            _connection = await TryOpenConnectionAsync(cancellationToken);
+        await _semaphore.WaitAsync(cancellationToken);
 
-        return _connection;
+        DbConnection connection;
+
+        try
+        {
+            if (_resiliencePolicy != null)
+                connection = await _resiliencePolicy.ExecuteAsync(
+                    async () => await TryOpenConnectionAsync(cancellationToken));
+            else
+                connection = await TryOpenConnectionAsync(cancellationToken);
+        }
+        finally
+        {
+            _semaphore.Release();
+        }
+
+        return connection;
     }
 
-    public Task CloseAsync(CancellationToken cancellationToken = default)
-    {
-        return _connection?.State != ConnectionState.Closed ? _connection?.CloseAsync() : Task.CompletedTask;
-    }
+    public Task CloseAsync(CancellationToken cancellationToken = default) => Task.CompletedTask;
 
     private async Task<DbConnection> TryOpenConnectionAsync(CancellationToken cancellationToken = default)
     {
         DbConnection dbConnection;
+
         try
         {
             cancellationToken.ThrowIfCancellationRequested();
@@ -76,7 +84,9 @@ public sealed class ConnectionManager : IConnectionManager
             dbConnection.ConnectionString = ConnectionString;
 
             if (dbConnection.State != ConnectionState.Open)
+            {
                 await dbConnection.OpenAsync(cancellationToken);
+            }
         }
         catch (NpgsqlException e)
         {
@@ -97,9 +107,9 @@ public sealed class ConnectionManager : IConnectionManager
         return dbConnection;
     }
 
-    public ValueTask DisposeAsync()
+    public void Dispose()
     {
-        _transactionManager?.Dispose();
-        return ValueTask.CompletedTask;
+        TransactionManager?.Dispose();
+        TransactionManager = null;
     }
 }

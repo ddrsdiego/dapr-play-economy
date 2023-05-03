@@ -1,19 +1,25 @@
 ﻿namespace Play.Common.Messaging;
 
 using System;
+using System.Text.Json.Serialization;
 
 public sealed class MessageEnvelope
 {
-    public MessageEnvelope(string sender, byte[] body)
+    [JsonConstructor]
+    public MessageEnvelope(string eventName, string topicName, string sender, byte[] body)
     {
-        Id = Guid.NewGuid().ToString();
-        SentAt = DateTimeOffset.Now;
+        EnvelopeId = Guid.NewGuid().ToString();
+        EventName = eventName;
+        TopicName = topicName;
         Sender = sender;
         Body = body;
+        SentAt = DateTimeOffset.UtcNow;
     }
 
     public byte[] Body { get; set; }
+    public string EventName { get; }
+    public string TopicName { get; }
     public string Sender { get; set; }
-    public string Id { get; }
+    public string EnvelopeId { get; }
     public DateTimeOffset SentAt { get; }
 }

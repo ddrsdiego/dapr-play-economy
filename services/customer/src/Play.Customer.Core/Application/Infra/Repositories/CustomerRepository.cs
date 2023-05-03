@@ -99,8 +99,7 @@ public sealed class CustomerRepository : Repository, ICustomerRepository
         {
             var data = aggregateRoot.ToCustomerData();
 
-            await using var conn = await _connectionManager.GetOpenConnectionAsync(cancellationToken);
-            
+            await using var conn  = await _connectionManager.GetOpenConnectionAsync(cancellationToken);
             await conn.ExecuteAsync(CustomerRepositoryStatement.UpdateAsync,
                 new {data.CustomerId, data.Name});
         }

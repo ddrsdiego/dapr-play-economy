@@ -5,6 +5,7 @@
     using System.Text.Json;
     using System.Threading;
     using System.Threading.Tasks;
+    using Common.Messaging;
     using CSharpFunctionalExtensions;
     using Microsoft.AspNetCore.Http;
 
@@ -25,7 +26,13 @@
 
                 if (position != null)
                 {
-                    eventToBeExtracted = JsonSerializer.Deserialize<T>(buffer.FirstSpan,
+                    var messageEnvelope = JsonSerializer.Deserialize<MessageEnvelope>(buffer.FirstSpan,
+                        new JsonSerializerOptions
+                        {
+                            PropertyNameCaseInsensitive = true
+                        });
+                    
+                    eventToBeExtracted = JsonSerializer.Deserialize<T>(messageEnvelope.Body,
                         new JsonSerializerOptions
                         {
                             PropertyNameCaseInsensitive = true

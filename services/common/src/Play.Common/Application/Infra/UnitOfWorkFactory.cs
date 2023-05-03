@@ -26,7 +26,7 @@ public sealed class UnitOfWorkFactory : IUnitOfWorkFactory
     public async Task<IUnitOfWork> CreateAsync(CancellationToken cancellationToken = default)
     {
         var unitOfWork = UnitOfWorkPostgres.Create(_connectionManager, cancellationToken);
-        await unitOfWork.InitializeTransactionAsync(cancellationToken);
+        await unitOfWork.BeginTransactionAsync();
 
         return unitOfWork;
     }

@@ -1,4 +1,4 @@
-﻿namespace Play.Customer.Service.Workers;
+﻿namespace Play.Catalog.Service.Workers;
 
 using System.Threading;
 using System.Threading.Tasks;

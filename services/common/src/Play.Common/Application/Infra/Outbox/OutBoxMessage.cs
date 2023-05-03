@@ -13,19 +13,24 @@ public sealed class OutBoxMessage : BoxMessage
         public const string Failed = nameof(Failed);
     }
 
-    public OutBoxMessage(string eventName, string topicName, string payload, string fullName)
-        : this(Guid.NewGuid().ToString(), eventName, topicName, OutBoxMessageStatus.Pending, payload, fullName, 0)
+    public OutBoxMessage(string processorId, string pubSubName, string eventName, string topicName, string payload,
+        string fullName)
+        : this(Guid.NewGuid().ToString(), processorId, pubSubName, eventName, topicName, OutBoxMessageStatus.Pending,
+            payload, fullName, 0)
     {
     }
 
-    internal OutBoxMessage(string id, string eventName, string topicName, string status, string payload,
-        string fullName, int numberAttempts)
-        : base(id, eventName, topicName, status, payload, fullName, BoxType, numberAttempts)
+    internal OutBoxMessage(string id, string processorId, string pubSubName, string eventName, string topicName,
+        string status, string payload, string fullName, int numberAttempts)
+        : base(id, pubSubName, eventName, topicName, status, payload, fullName, BoxType, numberAttempts)
     {
+        ProcessorId = processorId;
     }
 
-    public OutBoxMessage ToMessagePublished() => new(Id, EventName, TopicName, OutBoxMessageStatus.Published, Payload,
-        FullName, NumberAttempts);
+    public string ProcessorId { get; }
+
+    public OutBoxMessage ToMessagePublished() => new(Id, ProcessorId, PubSubName, EventName, TopicName,
+        OutBoxMessageStatus.Published, Payload, FullName, NumberAttempts);
 
 
     public void IncrementNumberAttempts() => NumberAttempts++;

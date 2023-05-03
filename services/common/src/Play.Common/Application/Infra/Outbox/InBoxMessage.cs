@@ -9,8 +9,8 @@ public sealed class InBoxMessage : BoxMessage
         public const string Failed = nameof(Failed);
     }
 
-    public InBoxMessage(string id, string eventName, string topicName, string status, string payload)
-        : base(id, eventName, topicName, status, payload, null, "IN", 0)
+    public InBoxMessage(string id, string pubSubName, string eventName, string topicName, string status, string payload)
+        : base(id, pubSubName, eventName, topicName, status, payload, null, "IN", 0)
     {
     }
 }

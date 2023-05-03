@@ -1,6 +1,7 @@
 ﻿namespace Play.Common.Application.Infra;
 
 using System;
+using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using Repositories;
@@ -9,60 +10,73 @@ public interface IUnitOfWork : IDisposable, IAsyncDisposable
 {
     IConnectionManager ConnectionManager { get; }
 
-    Task InitializeTransactionAsync(CancellationToken cancellationToken = default);
+    Task BeginTransactionAsync();
 
-    /// <summary>
-    /// End the current transaction.
-    /// </summary>
-    /// <param name="cancellationToken"></param>
-    /// <returns></returns>
-    Task CommitTransactionAsync(CancellationToken cancellationToken = default);
+    Task SaveChangesAsync();
 
-    /// <summary>
-    /// Undo the current transaction.
-    /// </summary>
-    /// <param name="cancellationToken"></param>
-    /// <returns></returns>
-    Task RollbackTransactionAsync(CancellationToken cancellationToken = default);
+    void AddToContext(Func<Task> task);
+}
 
-    Task SaveChangesAsync(CancellationToken cancellationToken = default);
+public readonly struct UnitOfWorkProcess
+{
+    public UnitOfWorkProcess(Func<Task> task)
+    {
+        Method = task;
+        Id = Guid.NewGuid().ToString();
+    }
+
+    public string Id { get; }
+    
+    public Func<Task> Method { get; }
 }
 
 public abstract class UnitOfWork : IUnitOfWork
 {
-    private readonly CancellationToken _cancellationToken;
     private bool _committed;
     private bool _disposed;
+    private readonly object _syncLock = new();
+    private LinkedList<UnitOfWorkProcess> _methods;
+    private readonly CancellationToken _cancellationToken;
 
     protected UnitOfWork(IConnectionManager connectionManager, CancellationToken cancellationToken = default)
     {
+        _methods = new LinkedList<UnitOfWorkProcess>();
         ConnectionManager = connectionManager;
         _cancellationToken = cancellationToken;
     }
 
     public IConnectionManager ConnectionManager { get; private set; }
 
-    public virtual async Task InitializeTransactionAsync(CancellationToken cancellationToken = default)
-    {
-        await ConnectionManager.GetOpenConnectionAsync(cancellationToken);
-        await ConnectionManager.BeginTransaction(cancellationToken);
-    }
-
-    public virtual Task CommitTransactionAsync(CancellationToken cancellationToken = default)
-    {
-        return ConnectionManager.TransactionManager.CommitAsync(_cancellationToken);
-    }
-
-    public virtual async Task RollbackTransactionAsync(CancellationToken cancellationToken = default)
-    {
-        if (_committed) return;
-        await ConnectionManager.TransactionManager?.RollbackAsync(_cancellationToken);
-    }
-
-    public virtual async Task SaveChangesAsync(CancellationToken cancellationToken = default)
+    public virtual async Task BeginTransactionAsync()
     {
         try
         {
+            _cancellationToken.ThrowIfCancellationRequested();
+
+            await ConnectionManager.GetOpenConnectionAsync(_cancellationToken);
+            await ConnectionManager.BeginTransactionAsync(_cancellationToken);
+        }
+        catch (OperationCanceledException e)
+        {
+            await DisposeAsync();
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine(e);
+        }
+    }
+
+    public virtual async Task SaveChangesAsync()
+    {
+        try
+        {
+            _cancellationToken.ThrowIfCancellationRequested();
+
+            foreach (var process in _methods)
+            {
+                await process.Method().ConfigureAwait(false);
+            }
+
             if (!_committed)
             {
                 if (ConnectionManager.TransactionManager == null)
@@ -71,10 +85,12 @@ public abstract class UnitOfWork : IUnitOfWork
                 }
 
                 await ConnectionManager.TransactionManager.CommitAsync(_cancellationToken);
-                ConnectionManager.TransactionManager.Dispose();
-            
                 _committed = true;
             }
+        }
+        catch (OperationCanceledException e)
+        {
+            await DisposeAsync();
         }
         catch (Exception e)
         {
@@ -82,13 +98,23 @@ public abstract class UnitOfWork : IUnitOfWork
         }
     }
 
+    public void AddToContext(Func<Task> task)
+    {
+        if (task == null) throw new ArgumentNullException(nameof(task));
+
+        lock (_syncLock)
+        {
+            _methods.AddLast(new UnitOfWorkProcess(task));
+        }
+    }
+
     public async ValueTask DisposeAsync()
     {
+        ConnectionManager.TransactionManager.Dispose();
         await ConnectionManager.CloseAsync(_cancellationToken);
-        await ConnectionManager.DisposeAsync();
+        ConnectionManager.Dispose();
 
-        Dispose(true);
-        GC.SuppressFinalize(this);
+        Dispose();
     }
 
     public void Dispose()
@@ -102,6 +128,7 @@ public abstract class UnitOfWork : IUnitOfWork
         if (_disposed) return;
         if (disposing)
         {
+            _methods = null;
             ConnectionManager?.TransactionManager?.Dispose();
             ConnectionManager = null;
         }

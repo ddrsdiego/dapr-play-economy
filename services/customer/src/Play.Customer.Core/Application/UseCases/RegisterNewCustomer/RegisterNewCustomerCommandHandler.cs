@@ -7,7 +7,6 @@ using Common.Application;
 using Common.Application.Infra;
 using Common.Application.Infra.Outbox;
 using CSharpFunctionalExtensions;
-using Dapr.Client;
 using Domain.AggregateModel.CustomerAggregate;
 using Helpers.Constants;
 using MediatR;
@@ -17,18 +16,20 @@ using UpdateCustomer;
 
 internal sealed class RegisterNewCustomerCommandHandler : IRequestHandler<RegisterNewCustomerCommand, Response>
 {
-    private readonly DaprClient _daprClient;
+    private const string TopicName = Topics.CustomerRegistered;
+    private const string EventName = nameof(NewCustomerCreated);
+    private const string PubSubName = "play-customer-service-pubsub";
+
     private readonly ILogger<RegisterNewCustomerCommandHandler> _logger;
     private readonly ICustomerRepository _customerRepository;
     private readonly IOutboxMessagesRepository _outboxMessagesRepository;
     private readonly IUnitOfWorkFactory _unitOfWorkFactory;
 
     public RegisterNewCustomerCommandHandler(ILogger<RegisterNewCustomerCommandHandler> logger,
-        DaprClient daprClient, ICustomerRepository customerRepository,
+        ICustomerRepository customerRepository,
         IOutboxMessagesRepository outboxMessagesRepository, IUnitOfWorkFactory unitOfWorkFactory)
     {
         _logger = logger;
-        _daprClient = daprClient;
         _customerRepository = customerRepository;
         _outboxMessagesRepository = outboxMessagesRepository;
         _unitOfWorkFactory = unitOfWorkFactory;
@@ -40,16 +41,19 @@ internal sealed class RegisterNewCustomerCommandHandler : IRequestHandler<Regist
             return Response.Fail(Errors.Customer.UserAlreadyExists(command.Email));
 
         var newCustomer = new Customer(command.Document, command.Name, command.Email);
+        
         await using var uow = await _unitOfWorkFactory.CreateAsync(cancellationToken);
 
-        await _customerRepository.SaveAsync(newCustomer, cancellationToken);
+        uow.AddToContext(async () => await _customerRepository.SaveAsync(newCustomer, cancellationToken));
+        
         foreach (var notification in newCustomer.DomainEvents)
         {
             var @event = (NewCustomerCreated) notification;
-            await _outboxMessagesRepository.SaveAsync(nameof(NewCustomerCreated), Topics.CustomerRegistered, @event,
-                cancellationToken);
+            uow.AddToContext(async () => await _outboxMessagesRepository.SaveAsync(PubSubName, EventName, TopicName, @event, cancellationToken));
         }
 
+        await uow.SaveChangesAsync();
+        
         var responseContent = new RegisterNewCustomerResponse(newCustomer.Identification.Id, newCustomer.Name,
             newCustomer.Email.Value,
             newCustomer.CreatedAt);

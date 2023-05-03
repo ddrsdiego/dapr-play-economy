@@ -5,6 +5,7 @@ using System;
 public sealed class OutboxMessageData
 {
     public string Id { get; set; }
+    public string ProcessorId { get; set; }
     public string EventName { get; set; }
     public string TopicName { get; set; }
     public string FullName { get; set; }
@@ -13,4 +14,5 @@ public sealed class OutboxMessageData
     public string Type { get; set; }
     public int NumberAttempts { get; set; }
     public DateTimeOffset CreatedAt { get; set; }
+    public string PubSubName { get; set; }
 }

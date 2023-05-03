@@ -1,6 +1,8 @@
 ﻿namespace Play.Catalog.Core.Application.UseCases.CreateNewCatalogItem
 {
     using Common.Application;
+    using Common.Application.Infra;
+    using Common.Application.Infra.Outbox;
     using Common.Application.Infra.Repositories.Dapr;
     using Dapr.Client;
     using Domain.AggregatesModel.CatalogItemAggregate;
@@ -13,12 +15,17 @@
     {
         private readonly DaprClient _daprClient;
         private readonly IDaprStateEntryRepository<CatalogItemData> _daprStateEntryRepository;
+        private readonly IUnitOfWorkFactory _unitOfWorkFactory;
+        private readonly IOutboxMessagesRepository _outboxMessagesRepository;
 
         public CreateNewCatalogItemCommandHandler(DaprClient daprClient,
-            IDaprStateEntryRepository<CatalogItemData> daprStateEntryRepository)
+            IDaprStateEntryRepository<CatalogItemData> daprStateEntryRepository,
+            IOutboxMessagesRepository outboxMessagesRepository, IUnitOfWorkFactory unitOfWorkFactory)
         {
             _daprClient = daprClient;
             _daprStateEntryRepository = daprStateEntryRepository;
+            _outboxMessagesRepository = outboxMessagesRepository;
+            _unitOfWorkFactory = unitOfWorkFactory;
         }
 
         public async Task<Response> Handle(CreateNewCatalogItemRequest request, CancellationToken cancellationToken)
@@ -26,17 +33,22 @@
             var newCatalogItem = new CatalogItem(request.Price, request.Name, request.Description);
 
             var catalogItemData = newCatalogItem.ToCatalogItemData();
-            await _daprStateEntryRepository.UpsertAsync(catalogItemData, cancellationToken);
 
+            const string eventName = nameof(CatalogItemCreated);
+            const string topicName = Topics.CatalogItemCreated;
+            
             var catalogItemCreated = new CatalogItemCreated(newCatalogItem.Id, newCatalogItem.Descriptor.Name,
                 newCatalogItem.Descriptor.Value);
+            
+            await using (var uow = await _unitOfWorkFactory.CreateAsync(cancellationToken))
+            {
+                uow.AddToContext(async () => await _daprStateEntryRepository.UpsertAsync(catalogItemData, cancellationToken));
+                uow.AddToContext(async () => await _outboxMessagesRepository.SaveAsync(DaprParameters.PubSubName, eventName, topicName, catalogItemCreated, cancellationToken));
+                
+                await uow.SaveChangesAsync();
+            }
 
-            _ = _daprClient.PublishEventAsync(DaprParameters.PubSubName, Topics.CatalogItemCreated,
-                catalogItemCreated,
-                cancellationToken);
-
-            var responseContent = new CreateNewCatalogItemResponse(
-                newCatalogItem.Id,
+            var responseContent = new CreateNewCatalogItemResponse(newCatalogItem.Id,
                 newCatalogItem.Descriptor.Name,
                 newCatalogItem.Descriptor.Value,
                 newCatalogItem.Price.Value,
