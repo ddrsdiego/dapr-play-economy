@@ -1,12 +1,11 @@
-namespace Play.Common.Application.Infra.Repositories.Dapr
-{
-    public abstract class DaprStateEntry : IDaprStateEntry
-    {
-        protected DaprStateEntry(string stateEntryKey)
-        {
-            StateEntryKey = stateEntryKey;
-        }
+namespace Play.Common.Application.Infra.Repositories.Dapr;
 
-        public string StateEntryKey { get; protected set; }
+public abstract class DaprStateEntry : IDaprStateEntry
+{
+    protected DaprStateEntry(string stateEntryKey)
+    {
+        StateEntryKey = stateEntryKey;
     }
+
+    public string StateEntryKey { get; protected set; }
 }

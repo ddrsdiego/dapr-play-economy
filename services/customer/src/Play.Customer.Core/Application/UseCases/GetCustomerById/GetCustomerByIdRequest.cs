@@ -1,12 +1,11 @@
-﻿namespace Play.Customer.Core.Application.UseCases.GetCustomerById
+﻿namespace Play.Customer.Core.Application.UseCases.GetCustomerById;
+
+using Common.Application;
+using MediatR;
+
+public readonly struct GetCustomerByIdRequest : IRequest<Response>
 {
-    using Common.Application;
-    using MediatR;
+    public GetCustomerByIdRequest(string id) => Id = id;
 
-    public readonly struct GetCustomerByIdRequest : IRequest<Response>
-    {
-        public GetCustomerByIdRequest(string id) => Id = id;
-
-        public string Id { get; }
-    }
+    public string Id { get; }
 }

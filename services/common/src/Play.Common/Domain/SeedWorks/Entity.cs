@@ -1,44 +1,43 @@
-﻿namespace Play.Common.Domain.SeedWorks
-{
-    using System;
-    using System.Collections.Generic;
+﻿namespace Play.Common.Domain.SeedWorks;
 
-    public interface INotification
+using System;
+using System.Collections.Generic;
+
+public interface INotification
+{
+}
+
+public abstract class Entity
+{
+    private List<INotification> _notifications;
+
+    protected Entity()
+        : this(Guid.NewGuid().ToString())
     {
     }
 
-    public abstract class Entity
+    protected Entity(string id)
     {
-        private List<INotification> _notifications;
+        Id = id;
+    }
 
-        protected Entity()
-            : this(Guid.NewGuid().ToString())
-        {
-        }
+    public virtual string Id { get; protected set; }
 
-        protected Entity(string id)
-        {
-            Id = id;
-        }
+    public IReadOnlyCollection<INotification> DomainEvents => _notifications?.AsReadOnly();
 
-        public virtual string Id { get; protected set; }
+    protected void AddNotification(INotification eventItem)
+    {
+        _notifications = _notifications ?? new List<INotification>();
+        _notifications.Add(eventItem);
+    }
 
-        public IReadOnlyCollection<INotification> DomainEvents => _notifications?.AsReadOnly();
+    public void RemoveDomainEvent(INotification eventItem)
+    {
+        _notifications?.Remove(eventItem);
+    }
 
-        protected void AddNotification(INotification eventItem)
-        {
-            _notifications = _notifications ?? new List<INotification>();
-            _notifications.Add(eventItem);
-        }
-
-        public void RemoveDomainEvent(INotification eventItem)
-        {
-            _notifications?.Remove(eventItem);
-        }
-
-        public void ClearDomainEvents()
-        {
-            _notifications?.Clear();
-        }
+    public void ClearDomainEvents()
+    {
+        _notifications?.Clear();
     }
 }

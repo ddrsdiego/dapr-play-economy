@@ -1,4 +1,4 @@
-﻿namespace Play.Common.Application.Infra;
+﻿namespace Play.Common.Application.Infra.UoW;
 
 using System;
 using System.Collections.Generic;
@@ -17,33 +17,24 @@ public interface IUnitOfWork : IDisposable, IAsyncDisposable
     void AddToContext(Func<Task> task);
 }
 
-public readonly struct UnitOfWorkProcess
-{
-    public UnitOfWorkProcess(Func<Task> task)
-    {
-        Method = task;
-        Id = Guid.NewGuid().ToString();
-    }
-
-    public string Id { get; }
-    
-    public Func<Task> Method { get; }
-}
-
 public abstract class UnitOfWork : IUnitOfWork
 {
     private bool _committed;
     private bool _disposed;
-    private readonly object _syncLock = new();
     private LinkedList<UnitOfWorkProcess> _methods;
+
+    private readonly object _syncLock = new();
     private readonly CancellationToken _cancellationToken;
 
-    protected UnitOfWork(IConnectionManager connectionManager, CancellationToken cancellationToken = default)
+    protected UnitOfWork(string unitOfWorkContextId, IConnectionManager connectionManager, CancellationToken cancellationToken = default)
     {
         _methods = new LinkedList<UnitOfWorkProcess>();
+        UnitOfWorkContextId = unitOfWorkContextId;
         ConnectionManager = connectionManager;
         _cancellationToken = cancellationToken;
     }
+
+    public string UnitOfWorkContextId { get; }
 
     public IConnectionManager ConnectionManager { get; private set; }
 
@@ -104,15 +95,15 @@ public abstract class UnitOfWork : IUnitOfWork
 
         lock (_syncLock)
         {
-            _methods.AddLast(new UnitOfWorkProcess(task));
+            _methods.AddLast(new UnitOfWorkProcess(UnitOfWorkContextId, task));
         }
     }
 
     public async ValueTask DisposeAsync()
     {
-        ConnectionManager.TransactionManager.Dispose();
-        await ConnectionManager.CloseAsync(_cancellationToken);
-        ConnectionManager.Dispose();
+        ConnectionManager?.TransactionManager?.Dispose();
+        await ConnectionManager?.CloseAsync(_cancellationToken);
+        ConnectionManager?.Dispose();
 
         Dispose();
     }

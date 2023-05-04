@@ -1,13 +1,12 @@
-﻿namespace Play.Catalog.Core.Application.UseCases.GetCatalogItemById
+﻿namespace Play.Catalog.Core.Application.UseCases.GetCatalogItemById;
+
+using Common.Application;
+using Common.Application.UseCase;
+using MediatR;
+
+public sealed class GetCatalogItemByIdRequest : UseCaseRequest, IRequest<Response>
 {
-    using Common.Application;
-    using Common.Application.UseCase;
-    using MediatR;
+    public GetCatalogItemByIdRequest(string id) => Id = id;
 
-    public sealed class GetCatalogItemByIdRequest : UseCaseRequest, IRequest<Response>
-    {
-        public GetCatalogItemByIdRequest(string id) => Id = id;
-
-        public string Id { get; }
-    }
+    public string Id { get; }
 }

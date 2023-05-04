@@ -1,8 +1,7 @@
-namespace Play.Inventory.Core.Domain.AggregateModel.CustomerAggregate
+namespace Play.Inventory.Core.Domain.AggregateModel.CustomerAggregate;
+
+public interface ICustomerRepository
 {
-    public interface ICustomerRepository
-    {
-        Task<Customer> GetCustomerByIdAsync(string userId);
-        Task UpsertAsync(Customer customer);
-    }
+    Task<Customer> GetCustomerByIdAsync(string userId);
+    Task UpsertAsync(Customer customer);
 }

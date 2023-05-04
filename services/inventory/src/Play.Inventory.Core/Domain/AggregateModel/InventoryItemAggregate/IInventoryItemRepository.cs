@@ -1,9 +1,8 @@
-namespace Play.Inventory.Core.Domain.AggregateModel.InventoryItemAggregate
+namespace Play.Inventory.Core.Domain.AggregateModel.InventoryItemAggregate;
+
+public interface IInventoryItemRepository
 {
-    public interface IInventoryItemRepository
-    {
-        Task SaveOrUpdateAsync(InventoryItem inventoryItem);
+    Task SaveOrUpdateAsync(InventoryItem inventoryItem);
         
-        Task<InventoryItem> GetByUserIdAsync(string userId);
-    }
+    Task<InventoryItem> GetByUserIdAsync(string userId);
 }

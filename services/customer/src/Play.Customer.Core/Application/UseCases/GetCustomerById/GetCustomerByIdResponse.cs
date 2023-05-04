@@ -1,6 +1,5 @@
-﻿namespace Play.Customer.Core.Application.UseCases.GetCustomerById
-{
-    using System;
+﻿namespace Play.Customer.Core.Application.UseCases.GetCustomerById;
 
-    public sealed record GetCustomerByIdResponse(string CustomerId, string Name, string Email, DateTimeOffset CreatedAt);
-}
+using System;
+
+public sealed record GetCustomerByIdResponse(string CustomerId, string Name, string Email, DateTimeOffset CreatedAt);

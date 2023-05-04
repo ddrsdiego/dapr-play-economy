@@ -4,8 +4,8 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using Common.Application;
-using Common.Application.Infra;
-using Common.Application.Infra.Outbox;
+using Common.Application.Infra.UoW;
+using Common.Application.Messaging.OutBox;
 using CSharpFunctionalExtensions;
 using Domain.AggregateModel.CustomerAggregate;
 using Helpers.Constants;
@@ -22,16 +22,16 @@ internal sealed class RegisterNewCustomerCommandHandler : IRequestHandler<Regist
 
     private readonly ILogger<RegisterNewCustomerCommandHandler> _logger;
     private readonly ICustomerRepository _customerRepository;
-    private readonly IOutboxMessagesRepository _outboxMessagesRepository;
+    private readonly IOutBoxMessagesRepository _outBoxMessagesRepository;
     private readonly IUnitOfWorkFactory _unitOfWorkFactory;
 
     public RegisterNewCustomerCommandHandler(ILogger<RegisterNewCustomerCommandHandler> logger,
         ICustomerRepository customerRepository,
-        IOutboxMessagesRepository outboxMessagesRepository, IUnitOfWorkFactory unitOfWorkFactory)
+        IOutBoxMessagesRepository outBoxMessagesRepository, IUnitOfWorkFactory unitOfWorkFactory)
     {
         _logger = logger;
         _customerRepository = customerRepository;
-        _outboxMessagesRepository = outboxMessagesRepository;
+        _outBoxMessagesRepository = outBoxMessagesRepository;
         _unitOfWorkFactory = unitOfWorkFactory;
     }
 
@@ -49,7 +49,7 @@ internal sealed class RegisterNewCustomerCommandHandler : IRequestHandler<Regist
         foreach (var notification in newCustomer.DomainEvents)
         {
             var @event = (NewCustomerCreated) notification;
-            uow.AddToContext(async () => await _outboxMessagesRepository.SaveAsync(PubSubName, EventName, TopicName, @event, cancellationToken));
+            uow.AddToContext(async () => await _outBoxMessagesRepository.SaveAsync(PubSubName, EventName, TopicName, @event, cancellationToken));
         }
 
         await uow.SaveChangesAsync();

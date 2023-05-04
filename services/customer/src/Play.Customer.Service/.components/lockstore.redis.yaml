@@ -1,7 +1,7 @@
 apiVersion: dapr.io/v1alpha1
 kind: Component
 metadata:
-  name: play-customer-lockstore
+  name: play-customer-service-lock-store
 spec:
   type: lock.redis
   metadata:

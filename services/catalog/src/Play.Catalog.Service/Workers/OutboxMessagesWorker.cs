@@ -2,26 +2,26 @@
 
 using System.Threading;
 using System.Threading.Tasks;
-using Common.Application.Infra.Outbox;
+using Common.Application.Messaging.OutBox;
 using Microsoft.Extensions.Hosting;
 
 internal sealed class OutboxMessagesWorker : BackgroundService
 {
-    private readonly IOutboxMessagesProcessor _outboxMessagesProcessor;
+    private readonly IOutBoxMessagesProcessor _outBoxMessagesProcessor;
 
-    public OutboxMessagesWorker(IOutboxMessagesProcessor outboxMessagesProcessor)
+    public OutboxMessagesWorker(IOutBoxMessagesProcessor outBoxMessagesProcessor)
     {
-        _outboxMessagesProcessor = outboxMessagesProcessor;
+        _outBoxMessagesProcessor = outBoxMessagesProcessor;
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        await _outboxMessagesProcessor.RunAsync(stoppingToken);
+        await _outBoxMessagesProcessor.RunAsync(stoppingToken);
     }
 
     public override async Task StopAsync(CancellationToken cancellationToken)
     {
-        await _outboxMessagesProcessor.StopAsync(cancellationToken);
+        await _outBoxMessagesProcessor.StopAsync(cancellationToken);
         await base.StopAsync(cancellationToken);
     }
 }

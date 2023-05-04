@@ -1,4 +1,3 @@
-namespace Play.Catalog.Core.Domain.AggregatesModel.CatalogItemAggregate
-{
-    public record CatalogItemDeleted(string CatalogItemId);
-}
+namespace Play.Catalog.Core.Domain.AggregatesModel.CatalogItemAggregate;
+
+public record CatalogItemDeleted(string CatalogItemId);

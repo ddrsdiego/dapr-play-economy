@@ -1,56 +1,55 @@
-﻿namespace Play.Catalog.Service.Controllers.v1
+﻿namespace Play.Catalog.Service.Controllers.v1;
+
+using System.Net;
+using System.Threading.Tasks;
+using Common.Api;
+using Common.Application;
+using Core.Application.UseCases.CreateNewCatalogItem;
+using Core.Application.UseCases.GetCatalogItemById;
+using Core.Application.UseCases.UpdateUnitPriceCatalogItem;
+using MediatR;
+using Microsoft.AspNetCore.Mvc;
+
+[ApiController]
+[ApiVersion("1")]
+[Route("api/v{version:apiVersion}/items")]
+public class ItemsController : ControllerBase
 {
-    using System.Net;
-    using System.Threading.Tasks;
-    using Common.Api;
-    using Common.Application;
-    using Core.Application.UseCases.CreateNewCatalogItem;
-    using Core.Application.UseCases.GetCatalogItemById;
-    using Core.Application.UseCases.UpdateUnitPriceCatalogItem;
-    using MediatR;
-    using Microsoft.AspNetCore.Mvc;
+    private readonly ISender _sender;
 
-    [ApiController]
-    [ApiVersion("1")]
-    [Route("api/v{version:apiVersion}/items")]
-    public class ItemsController : ControllerBase
+    public ItemsController(ISender sender) => _sender = sender;
+
+    [HttpGet("{id}")]
+    [ProducesResponseType(typeof(GetCatalogItemByIdResponse), (int) HttpStatusCode.OK)]
+    [ProducesResponseType((int) HttpStatusCode.NotFound)]
+    [MetricsApiType("items-catalog-get-by-id", MetricsApiTypeLevel.Public, "products")]
+    public ValueTask GetById(string id)
     {
-        private readonly ISender _sender;
+        var response = _sender.Send(new GetCatalogItemByIdRequest(id));
+        return response.WriteToPipeAsync(Response);
+    }
 
-        public ItemsController(ISender sender) => _sender = sender;
+    [HttpPost]
+    [ProducesResponseType((int) HttpStatusCode.BadRequest)]
+    [ProducesResponseType(typeof(CreateNewCatalogItemResponse), (int) HttpStatusCode.Created)]
+    public async Task<IActionResult> PostAsync([FromBody] CreateNewCatalogItemRequest request)
+    {
+        var response = await _sender.Send(request);
+        if (response.IsFailure)
+            return BadRequest(response.ErrorResponse);
 
-        [HttpGet("{id}")]
-        [ProducesResponseType(typeof(GetCatalogItemByIdResponse), (int) HttpStatusCode.OK)]
-        [ProducesResponseType((int) HttpStatusCode.NotFound)]
-        [MetricsApiType("items-catalog-get-by-id", MetricsApiTypeLevel.Public, "products")]
-        public ValueTask GetById(string id)
-        {
-            var response = _sender.Send(new GetCatalogItemByIdRequest(id));
-            return response.WriteToPipeAsync(Response);
-        }
+        var createNewCatalogItemResponse = response.Content.GetRaw<CreateNewCatalogItemResponse>();
 
-        [HttpPost]
-        [ProducesResponseType((int) HttpStatusCode.BadRequest)]
-        [ProducesResponseType(typeof(CreateNewCatalogItemResponse), (int) HttpStatusCode.Created)]
-        public async Task<IActionResult> PostAsync([FromBody] CreateNewCatalogItemRequest request)
-        {
-            var response = await _sender.Send(request);
-            if (response.IsFailure)
-                return BadRequest(response.ErrorResponse);
+        return CreatedAtAction(nameof(GetById), new {id = createNewCatalogItemResponse.Id},
+            createNewCatalogItemResponse);
+    }
 
-            var createNewCatalogItemResponse = response.Content.GetRaw<CreateNewCatalogItemResponse>();
+    [HttpPut("{catalogItemId}/unit-price")]
+    public ValueTask PutAsync(string catalogItemId, UpdateUnitPriceCatalogItemRequest request)
+    {
+        var response =
+            _sender.Send(new UpdateUnitPriceCatalogItemCommand(catalogItemId, request.UnitPrice));
 
-            return CreatedAtAction(nameof(GetById), new {id = createNewCatalogItemResponse.Id},
-                createNewCatalogItemResponse);
-        }
-
-        [HttpPut("{catalogItemId}/unit-price")]
-        public ValueTask PutAsync(string catalogItemId, UpdateUnitPriceCatalogItemRequest request)
-        {
-            var response =
-                _sender.Send(new UpdateUnitPriceCatalogItemCommand(catalogItemId, request.UnitPrice));
-
-            return response.WriteToPipeAsync(Response);
-        }
+        return response.WriteToPipeAsync(Response);
     }
 }

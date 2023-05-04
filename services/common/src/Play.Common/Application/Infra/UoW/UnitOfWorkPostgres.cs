@@ -1,4 +1,4 @@
-﻿namespace Play.Common.Application.Infra;
+﻿namespace Play.Common.Application.Infra.UoW;
 
 using System;
 using System.Data.Common;
@@ -25,7 +25,7 @@ public sealed class UnitOfWorkPostgres : UnitOfWork
     }
 
     private UnitOfWorkPostgres(string connectionString, CancellationToken cancellationToken)
-        : base(new ConnectionManager(NpgsqlFactory.Instance, connectionString, ResiliencePolicy), cancellationToken)
+        : base(Guid.NewGuid().ToString(), new ConnectionManager(NpgsqlFactory.Instance, connectionString, ResiliencePolicy), cancellationToken)
     {
     }
 

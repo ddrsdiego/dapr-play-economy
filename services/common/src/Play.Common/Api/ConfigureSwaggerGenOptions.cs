@@ -1,42 +1,41 @@
-namespace Play.Common.Api
+namespace Play.Common.Api;
+
+using Microsoft.AspNetCore.Mvc.ApiExplorer;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
+using Microsoft.OpenApi.Models;
+using Swashbuckle.AspNetCore.SwaggerGen;
+
+public sealed class ConfigureSwaggerGenOptions : IConfigureOptions<SwaggerGenOptions>
 {
-    using Microsoft.AspNetCore.Mvc.ApiExplorer;
-    using Microsoft.Extensions.DependencyInjection;
-    using Microsoft.Extensions.Options;
-    using Microsoft.OpenApi.Models;
-    using Swashbuckle.AspNetCore.SwaggerGen;
+    private readonly IApiVersionDescriptionProvider _provider;
+    private readonly string _title;
 
-    public sealed class ConfigureSwaggerGenOptions : IConfigureOptions<SwaggerGenOptions>
+    public ConfigureSwaggerGenOptions(IApiVersionDescriptionProvider provider, string title)
     {
-        private readonly IApiVersionDescriptionProvider _provider;
-        private readonly string _title;
+        _provider = provider;
+        _title = title;
+    }
 
-        public ConfigureSwaggerGenOptions(IApiVersionDescriptionProvider provider, string title)
+    public void Configure(SwaggerGenOptions options)
+    {
+        foreach (var description in _provider.ApiVersionDescriptions)
         {
-            _provider = provider;
-            _title = title;
+            options.SwaggerDoc(description.GroupName, CreateInfoForApiVersion(description));
         }
+    }
 
-        public void Configure(SwaggerGenOptions options)
+    private OpenApiInfo CreateInfoForApiVersion(ApiVersionDescription description)
+    {
+        var info = new OpenApiInfo
         {
-            foreach (var description in _provider.ApiVersionDescriptions)
-            {
-                options.SwaggerDoc(description.GroupName, CreateInfoForApiVersion(description));
-            }
-        }
+            Title = _title,
+            Version = description.ApiVersion.ToString()
+        };
 
-        private OpenApiInfo CreateInfoForApiVersion(ApiVersionDescription description)
-        {
-            var info = new OpenApiInfo
-            {
-                Title = _title,
-                Version = description.ApiVersion.ToString()
-            };
+        if (description.IsDeprecated)
+            info.Description += "This API version has been deprecated.";
 
-            if (description.IsDeprecated)
-                info.Description += "This API version has been deprecated.";
-
-            return info;
-        }
+        return info;
     }
 }

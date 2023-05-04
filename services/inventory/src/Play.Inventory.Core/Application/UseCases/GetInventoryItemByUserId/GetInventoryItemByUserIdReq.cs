@@ -1,11 +1,10 @@
-﻿namespace Play.Inventory.Core.Application.UseCases.GetInventoryItemByUserId
+﻿namespace Play.Inventory.Core.Application.UseCases.GetInventoryItemByUserId;
+
+using Common.Application.UseCase;
+
+public class GetInventoryItemByUserIdReq : UseCaseRequest
 {
-    using Common.Application.UseCase;
+    public GetInventoryItemByUserIdReq(string userId) => UserId = userId;
 
-    public class GetInventoryItemByUserIdReq : UseCaseRequest
-    {
-        public GetInventoryItemByUserIdReq(string userId) => UserId = userId;
-
-        public string UserId { get; }
-    }
+    public string UserId { get; }
 }

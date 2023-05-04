@@ -1,9 +1,8 @@
-namespace Play.Catalog.Core.Domain.AggregatesModel.CatalogItemAggregate
-{
-    public interface ICatalogItemRepository
-    {
-        Task SaveOrUpdateAsync(CatalogItem entity);
+namespace Play.Catalog.Core.Domain.AggregatesModel.CatalogItemAggregate;
 
-        Task<CatalogItem> GetByIdAsync(string? id);
-    }
+public interface ICatalogItemRepository
+{
+    Task SaveOrUpdateAsync(CatalogItem entity);
+
+    Task<CatalogItem> GetByIdAsync(string? id);
 }

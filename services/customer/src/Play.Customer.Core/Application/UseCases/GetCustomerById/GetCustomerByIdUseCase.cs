@@ -1,37 +1,36 @@
-﻿namespace Play.Customer.Core.Application.UseCases.GetCustomerById
+﻿namespace Play.Customer.Core.Application.UseCases.GetCustomerById;
+
+using System.Threading;
+using System.Threading.Tasks;
+using Common.Application;
+using Domain.AggregateModel.CustomerAggregate;
+using MediatR;
+using Microsoft.Extensions.Logging;
+
+internal sealed class GetCustomerByIdQuery : IRequestHandler<GetCustomerByIdRequest, Response>
 {
-    using System.Threading;
-    using System.Threading.Tasks;
-    using Common.Application;
-    using Domain.AggregateModel.CustomerAggregate;
-    using MediatR;
-    using Microsoft.Extensions.Logging;
+    private readonly ILogger<GetCustomerByIdQuery> _logger;
+    private readonly ICustomerRepository _customerRepository;
 
-    internal sealed class GetCustomerByIdQuery : IRequestHandler<GetCustomerByIdRequest, Response>
+    public GetCustomerByIdQuery(ILogger<GetCustomerByIdQuery> logger, ICustomerRepository customerRepository)
     {
-        private readonly ILogger<GetCustomerByIdQuery> _logger;
-        private readonly ICustomerRepository _customerRepository;
+        _logger = logger;
+        _customerRepository = customerRepository;
+    }
 
-        public GetCustomerByIdQuery(ILogger<GetCustomerByIdQuery> logger, ICustomerRepository customerRepository)
+    public async Task<Response> Handle(GetCustomerByIdRequest request, CancellationToken cancellationToken)
+    {
+        var customer = await _customerRepository.GetByIdAsync(request.Id);
+        if (customer.HasNoValue)
         {
-            _logger = logger;
-            _customerRepository = customerRepository;
+            var error = new Error("CUSTOMER_NOT_FOUND", $"Client not found for id {request.Id}");
+            return Response.Fail(error);
         }
 
-        public async Task<Response> Handle(GetCustomerByIdRequest request, CancellationToken cancellationToken)
-        {
-            var customer = await _customerRepository.GetByIdAsync(request.Id);
-            if (customer.HasNoValue)
-            {
-                var error = new Error("CUSTOMER_NOT_FOUND", $"Client not found for id {request.Id}");
-                return Response.Fail(error);
-            }
+        var response =
+            new GetCustomerByIdResponse(customer.Value.Identification.Id, customer.Value.Name, customer.Value.Email.Value,
+                customer.Value.CreatedAt);
 
-            var response =
-                new GetCustomerByIdResponse(customer.Value.Identification.Id, customer.Value.Name, customer.Value.Email.Value,
-                    customer.Value.CreatedAt);
-
-            return Response.Ok(ResponseContent.Create(response));
-        }
+        return Response.Ok(ResponseContent.Create(response));
     }
 }

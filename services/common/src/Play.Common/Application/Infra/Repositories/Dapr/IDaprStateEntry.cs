@@ -1,7 +1,6 @@
-namespace Play.Common.Application.Infra.Repositories.Dapr
+namespace Play.Common.Application.Infra.Repositories.Dapr;
+
+public interface IDaprStateEntry
 {
-    public interface IDaprStateEntry
-    {
-        string StateEntryKey { get; }
-    }
+    string StateEntryKey { get; }
 }

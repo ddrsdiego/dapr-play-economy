@@ -1,63 +1,62 @@
-﻿namespace Play.Common.Application.Infra.Repositories.Dapr
+﻿namespace Play.Common.Application.Infra.Repositories.Dapr;
+
+using System;
+using System.Collections.Immutable;
+using System.Linq;
+using System.Reflection;
+using System.Runtime.CompilerServices;
+
+internal static class StateEntryNameManager
 {
-    using System;
-    using System.Collections.Immutable;
-    using System.Linq;
-    using System.Reflection;
-    using System.Runtime.CompilerServices;
+    private static readonly object LockObject;
+    private static ImmutableDictionary<string, string> _cache;
 
-    internal static class StateEntryNameManager
+    static StateEntryNameManager()
     {
-        private static readonly object LockObject;
-        private static ImmutableDictionary<string, string> _cache;
+        LockObject = new object();
+        _cache = ImmutableDictionary<string, string>.Empty;
+    }
 
-        static StateEntryNameManager()
-        {
-            LockObject = new object();
-            _cache = ImmutableDictionary<string, string>.Empty;
-        }
+    public static bool TryExtractName<TEntry>(out string topicName) => ExecuteTryExtractName<TEntry>(out topicName);
 
-        public static bool TryExtractName<TEntry>(out string topicName) => ExecuteTryExtractName<TEntry>(out topicName);
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static bool ExecuteTryExtractName<TEntry>(out string stateEntryName)
+    {
+        stateEntryName = string.Empty;
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static bool ExecuteTryExtractName<TEntry>(out string stateEntryName)
+        var attr = typeof(TEntry).CustomAttributes
+            .SingleOrDefault(x =>
+                x.AttributeType.FullName != null
+                && x.AttributeType.FullName.Equals(StateEntryNameAttribute.FullNameStateEntryNameAttribute,
+                    StringComparison.InvariantCultureIgnoreCase));
+
+        if (attr == null)
         {
             stateEntryName = string.Empty;
+            return false;
+        }
 
-            var attr = typeof(TEntry).CustomAttributes
-                .SingleOrDefault(x =>
-                    x.AttributeType.FullName != null
-                    && x.AttributeType.FullName.Equals(StateEntryNameAttribute.FullNameStateEntryNameAttribute,
-                        StringComparison.InvariantCultureIgnoreCase));
+        stateEntryName = attr.ConstructorArguments[StateEntryNameAttribute.StateEntryNamePosition].Value.ToString();
+        var modeFullName = typeof(TEntry).FullName;
 
-            if (attr == null)
-            {
-                stateEntryName = string.Empty;
-                return false;
-            }
+        if (_cache.TryGetValue(modeFullName, out stateEntryName))
+            return true;
 
-            stateEntryName = attr.ConstructorArguments[StateEntryNameAttribute.StateEntryNamePosition].Value.ToString();
-            var modeFullName = typeof(TEntry).FullName;
-
+        lock (LockObject)
+        {
             if (_cache.TryGetValue(modeFullName, out stateEntryName))
                 return true;
 
-            lock (LockObject)
-            {
-                if (_cache.TryGetValue(modeFullName, out stateEntryName))
-                    return true;
-
-                stateEntryName = attr.ConstructorArguments[StateEntryNameAttribute.StateEntryNamePosition].Value
-                    .ToString();
-                _cache = _cache.Add(modeFullName, stateEntryName);
-            }
-
-            return true;
+            stateEntryName = attr.ConstructorArguments[StateEntryNameAttribute.StateEntryNamePosition].Value
+                .ToString();
+            _cache = _cache.Add(modeFullName, stateEntryName);
         }
 
-        private static bool TryFindStateEntryName(CustomAttributeData x) =>
-            x.AttributeType.FullName != null
-            && x.AttributeType.FullName.Equals(StateEntryNameAttribute.FullNameStateEntryNameAttribute,
-                StringComparison.InvariantCultureIgnoreCase);
+        return true;
     }
+
+    private static bool TryFindStateEntryName(CustomAttributeData x) =>
+        x.AttributeType.FullName != null
+        && x.AttributeType.FullName.Equals(StateEntryNameAttribute.FullNameStateEntryNameAttribute,
+            StringComparison.InvariantCultureIgnoreCase);
 }

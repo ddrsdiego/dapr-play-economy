@@ -1,32 +1,31 @@
-﻿namespace Play.Common.Api
+﻿namespace Play.Common.Api;
+
+using System.Linq;
+using Microsoft.OpenApi.Any;
+using Microsoft.OpenApi.Extensions;
+using Microsoft.OpenApi.Models;
+using Swashbuckle.AspNetCore.SwaggerGen;
+
+public sealed class MetricsApiTypeFilter : IOperationFilter
 {
-    using System.Linq;
-    using Microsoft.OpenApi.Any;
-    using Microsoft.OpenApi.Extensions;
-    using Microsoft.OpenApi.Models;
-    using Swashbuckle.AspNetCore.SwaggerGen;
+    private const string MetricsTag = "x-metrics";
+    private const string OperationTag = "x-operation-id";
 
-    public sealed class MetricsApiTypeFilter : IOperationFilter
+    public void Apply(OpenApiOperation operation, OperationFilterContext context)
     {
-        private const string MetricsTag = "x-metrics";
-        private const string OperationTag = "x-operation-id";
+        var attr = context.MethodInfo
+            .GetCustomAttributes(true)
+            .OfType<MetricsApiTypeAttribute>()
+            .SingleOrDefault();
 
-        public void Apply(OpenApiOperation operation, OperationFilterContext context)
-        {
-            var attr = context.MethodInfo
-                .GetCustomAttributes(true)
-                .OfType<MetricsApiTypeAttribute>()
-                .SingleOrDefault();
+        if (attr is null)
+            return;
 
-            if (attr is null)
-                return;
-
-            operation.AddExtension(MetricsTag,
-                new OpenApiObject
-                {
-                    ["level"] = new OpenApiString(attr.Level.GetDisplayName().ToLowerInvariant()),
-                    ["domain"] = new OpenApiString(attr.Domain)
-                });
-        }
+        operation.AddExtension(MetricsTag,
+            new OpenApiObject
+            {
+                ["level"] = new OpenApiString(attr.Level.GetDisplayName().ToLowerInvariant()),
+                ["domain"] = new OpenApiString(attr.Domain)
+            });
     }
 }

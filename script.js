@@ -3,7 +3,7 @@ import { check, group, sleep, trend } from 'k6';
 
 export let options = {
   stages: [
-	{ duration: '1m', target: 50 },
+	{ duration: '1m', target: 5 },
     { duration: '1m', target: 0 },
   ],
   thresholds: {

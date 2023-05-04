@@ -1,4 +1,4 @@
-﻿namespace Play.Common.Application.Infra;
+﻿namespace Play.Common.Application.Infra.UoW;
 
 using System.Threading;
 using System.Threading.Tasks;

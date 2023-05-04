@@ -1,18 +1,17 @@
-﻿namespace Play.Customer.Core.Application.IoC
-{
-    using Microsoft.Extensions.DependencyInjection;
+﻿namespace Play.Customer.Core.Application.IoC;
 
-    internal static class SwaggerContainer
+using Microsoft.Extensions.DependencyInjection;
+
+internal static class SwaggerContainer
+{
+    public static IServiceCollection AddSwagger(this IServiceCollection services)
     {
-        public static IServiceCollection AddSwagger(this IServiceCollection services)
-        {
-            // services.AddSwaggerGen(c =>
-            //     c.SwaggerDoc("v1", new OpenApiInfo
-            //     {
-            //         Title = Assembly.GetEntryAssembly()?.GetName().Name
-            //     }));
+        // services.AddSwaggerGen(c =>
+        //     c.SwaggerDoc("v1", new OpenApiInfo
+        //     {
+        //         Title = Assembly.GetEntryAssembly()?.GetName().Name
+        //     }));
             
-            return services;
-        }
+        return services;
     }
 }

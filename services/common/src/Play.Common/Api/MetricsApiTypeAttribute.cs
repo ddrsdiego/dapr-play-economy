@@ -1,25 +1,24 @@
-namespace Play.Common.Api
+namespace Play.Common.Api;
+
+using System;
+
+public enum MetricsApiTypeLevel
 {
-    using System;
-
-    public enum MetricsApiTypeLevel
-    {
-        Public,
-        Private
-    }
+    Public,
+    Private
+}
     
-    [AttributeUsage(AttributeTargets.Method, Inherited = false)]
-    public sealed class MetricsApiTypeAttribute : Attribute
+[AttributeUsage(AttributeTargets.Method, Inherited = false)]
+public sealed class MetricsApiTypeAttribute : Attribute
+{
+    public MetricsApiTypeAttribute(string operationId, MetricsApiTypeLevel level, string domain)
     {
-        public MetricsApiTypeAttribute(string operationId, MetricsApiTypeLevel level, string domain)
-        {
-            OperationId = operationId ?? throw new ArgumentNullException(nameof(operationId));
-            Level = level;
-            Domain = domain;
-        }
-
-        public string OperationId { get; }
-        public MetricsApiTypeLevel Level { get; }
-        public string Domain { get; }
+        OperationId = operationId ?? throw new ArgumentNullException(nameof(operationId));
+        Level = level;
+        Domain = domain;
     }
+
+    public string OperationId { get; }
+    public MetricsApiTypeLevel Level { get; }
+    public string Domain { get; }
 }

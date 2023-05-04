@@ -1,11 +1,10 @@
-namespace Play.Inventory.Core.Domain.AggregateModel.CatalogItemAggregate
+namespace Play.Inventory.Core.Domain.AggregateModel.CatalogItemAggregate;
+
+public interface ICatalogItemRepository
 {
-    public interface ICatalogItemRepository
-    {
-        Task<CatalogItem> GetByIdAsync(string catalogItemId);
+    Task<CatalogItem> GetByIdAsync(string catalogItemId);
         
-        Task<IReadOnlyCollection<CatalogItem>> GetByIdsAsync(string[] catalogItemIds);
+    Task<IReadOnlyCollection<CatalogItem>> GetByIdsAsync(string[] catalogItemIds);
         
-        Task UpsertAsync(CatalogItem newCatalogItem);
-    }
+    Task UpsertAsync(CatalogItem newCatalogItem);
 }

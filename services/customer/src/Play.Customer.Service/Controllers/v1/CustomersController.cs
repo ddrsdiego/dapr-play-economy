@@ -1,30 +1,29 @@
-﻿namespace Play.Customer.Service.Controllers.v1
+﻿namespace Play.Customer.Service.Controllers.v1;
+
+using System.Threading.Tasks;
+using Common.Application;
+using Core.Application.UseCases.UpdateCustomer;
+using MediatR;
+using Microsoft.AspNetCore.Mvc;
+
+[ApiController]
+[ApiVersion("1")]
+[Route("api/v{version:apiVersion}/[controller]")]
+public class CustomersController : ControllerBase
 {
-    using System.Threading.Tasks;
-    using Common.Application;
-    using Core.Application.UseCases.UpdateCustomer;
-    using MediatR;
-    using Microsoft.AspNetCore.Mvc;
+    private readonly ISender _sender;
 
-    [ApiController]
-    [ApiVersion("1")]
-    [Route("api/v{version:apiVersion}/[controller]")]
-    public class CustomersController : ControllerBase
+    public CustomersController(ISender sender) => _sender = sender;
+
+    [HttpPut("{id}")]
+    public ValueTask UpdateCustomerAsync(string id, [FromBody] UpdateCustomerRequest request)
     {
-        private readonly ISender _sender;
+        var response = _sender.Send(new UpdateCustomerCommand(id, request.Name));
+        return response.WriteToPipeAsync(Response);
+    }
 
-        public CustomersController(ISender sender) => _sender = sender;
-
-        [HttpPut("{id}")]
-        public ValueTask UpdateCustomerAsync(string id, [FromBody] UpdateCustomerRequest request)
-        {
-            var response = _sender.Send(new UpdateCustomerCommand(id, request.Name));
-            return response.WriteToPipeAsync(Response);
-        }
-
-        public sealed class UpdateCustomerRequest
-        {
-            public string Name { get; set; }
-        }
+    public sealed class UpdateCustomerRequest
+    {
+        public string Name { get; set; }
     }
 }

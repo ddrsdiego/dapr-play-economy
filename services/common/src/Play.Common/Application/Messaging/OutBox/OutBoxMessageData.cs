@@ -1,8 +1,8 @@
-﻿namespace Play.Common.Application.Infra.Outbox;
+﻿namespace Play.Common.Application.Messaging.OutBox;
 
 using System;
 
-public sealed class OutboxMessageData
+public struct OutBoxMessageData
 {
     public string Id { get; set; }
     public string ProcessorId { get; set; }
@@ -13,6 +13,7 @@ public sealed class OutboxMessageData
     public string Status { get; set; }
     public string Type { get; set; }
     public int NumberAttempts { get; set; }
-    public DateTimeOffset CreatedAt { get; set; }
+    public string Sender { get; set; }
     public string PubSubName { get; set; }
+    public DateTimeOffset CreatedAt { get; set; }
 }

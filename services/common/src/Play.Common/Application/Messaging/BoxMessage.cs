@@ -1,13 +1,12 @@
-﻿namespace Play.Common.Application.Infra.Outbox;
+﻿namespace Play.Common.Application.Messaging;
 
 using System;
 
 public abstract class BoxMessage
 {
-    protected BoxMessage(string id, string pubSubName, string eventName, string topicName, string status, string payload, string fullName,
-        string type, int numberAttempts)
+    protected BoxMessage(string messageId, string pubSubName, string eventName, string topicName, string status, string payload, string fullName, string type, int numberAttempts)
     {
-        Id = id;
+        MessageId = messageId;
         PubSubName = pubSubName;
         EventName = eventName;
         TopicName = topicName;
@@ -18,7 +17,7 @@ public abstract class BoxMessage
         NumberAttempts = numberAttempts;
     }
 
-    public string Id { get; }
+    public string MessageId { get; }
     public string EventName { get; }
     public string FullName { get; }
     public string TopicName { get; }

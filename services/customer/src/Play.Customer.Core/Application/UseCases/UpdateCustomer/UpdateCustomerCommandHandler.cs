@@ -4,8 +4,8 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 using Common.Application;
-using Common.Application.Infra;
-using Common.Application.Infra.Outbox;
+using Common.Application.Infra.UoW;
+using Common.Application.Messaging.OutBox;
 using Domain.AggregateModel.CustomerAggregate;
 using Helpers.Constants;
 using MediatR;
@@ -29,15 +29,15 @@ internal sealed class UpdateCustomerCommandHandler : IRequestHandler<UpdateCusto
 
     private readonly IUnitOfWorkFactory _unitOfWorkFactory;
     private readonly ICustomerRepository _customerRepository;
-    private readonly IOutboxMessagesRepository _outboxMessagesRepository;
+    private readonly IOutBoxMessagesRepository _outBoxMessagesRepository;
 
     public UpdateCustomerCommandHandler(ILogger<UpdateCustomerCommandHandler> logger,
-        ICustomerRepository customerRepository, IOutboxMessagesRepository outboxMessagesRepository,
+        ICustomerRepository customerRepository, IOutBoxMessagesRepository outBoxMessagesRepository,
         IUnitOfWorkFactory unitOfWorkFactory)
     {
         _unitOfWorkFactory = unitOfWorkFactory;
         _customerRepository = customerRepository;
-        _outboxMessagesRepository = outboxMessagesRepository;
+        _outBoxMessagesRepository = outBoxMessagesRepository;
     }
 
     public async Task<Response> Handle(UpdateCustomerCommand command, CancellationToken cancellationToken)
@@ -55,7 +55,7 @@ internal sealed class UpdateCustomerCommandHandler : IRequestHandler<UpdateCusto
             await using var unitOfWork = await _unitOfWorkFactory.CreateAsync(cancellationToken);
 
             unitOfWork.AddToContext(async () => await _customerRepository.UpdateAsync(customer.Value, cancellationToken));
-            unitOfWork.AddToContext(async () => await _outboxMessagesRepository.SaveAsync(PubSubName, nameof(CustomerNameUpdated), Topics.CustomerUpdated, customerNameUpdated, cancellationToken));
+            unitOfWork.AddToContext(async () => await _outBoxMessagesRepository.SaveAsync(PubSubName, nameof(CustomerNameUpdated), Topics.CustomerUpdated, customerNameUpdated, cancellationToken));
 
             await unitOfWork.SaveChangesAsync();
         }

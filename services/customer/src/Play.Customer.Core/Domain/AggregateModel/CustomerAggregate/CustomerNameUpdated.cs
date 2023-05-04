@@ -1,6 +1,5 @@
-namespace Play.Customer.Core.Domain.AggregateModel.CustomerAggregate
-{
-    using Common.Domain.SeedWorks;
+namespace Play.Customer.Core.Domain.AggregateModel.CustomerAggregate;
 
-    public record CustomerNameUpdated(string CustomerId, string Name) : INotification;
-}
+using Common.Domain.SeedWorks;
+
+public record CustomerNameUpdated(string CustomerId, string Name) : INotification;

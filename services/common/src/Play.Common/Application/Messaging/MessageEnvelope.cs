@@ -1,4 +1,4 @@
-﻿namespace Play.Common.Messaging;
+﻿namespace Play.Common.Application.Messaging;
 
 using System;
 using System.Text.Json.Serialization;
@@ -6,14 +6,15 @@ using System.Text.Json.Serialization;
 public sealed class MessageEnvelope
 {
     [JsonConstructor]
-    public MessageEnvelope(string eventName, string topicName, string sender, byte[] body)
+    public MessageEnvelope(string envelopeId,string pubSubName, string eventName, string topicName, string sender, byte[] body)
     {
-        EnvelopeId = Guid.NewGuid().ToString();
         EventName = eventName;
         TopicName = topicName;
         Sender = sender;
         Body = body;
-        SentAt = DateTimeOffset.UtcNow;
+        EnvelopeId = envelopeId;
+        PubSubName = pubSubName;
+        SentAt = DateTimeOffset.Now;
     }
 
     public byte[] Body { get; set; }
@@ -22,4 +23,5 @@ public sealed class MessageEnvelope
     public string Sender { get; set; }
     public string EnvelopeId { get; }
     public DateTimeOffset SentAt { get; }
+    public string PubSubName { get; set; }
 }
