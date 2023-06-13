@@ -27,9 +27,10 @@ internal sealed class GetCustomerByIdQuery : IRequestHandler<GetCustomerByIdRequ
             return Response.Fail(error);
         }
 
-        var response =
-            new GetCustomerByIdResponse(customer.Value.Identification.Id, customer.Value.Name, customer.Value.Email.Value,
-                customer.Value.CreatedAt);
+        var response = new GetCustomerByIdResponse(customer.Value.Identification.Id,
+            customer.Value.Name,
+            customer.Value.Email.Value,
+            customer.Value.CreatedAt);
 
         return Response.Ok(ResponseContent.Create(response));
     }

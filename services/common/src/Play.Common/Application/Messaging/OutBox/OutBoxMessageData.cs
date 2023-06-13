@@ -4,7 +4,7 @@ using System;
 
 public struct OutBoxMessageData
 {
-    public string Id { get; set; }
+    public string MessageId { get; set; }
     public string ProcessorId { get; set; }
     public string EventName { get; set; }
     public string TopicName { get; set; }
@@ -15,5 +15,6 @@ public struct OutBoxMessageData
     public int NumberAttempts { get; set; }
     public string Sender { get; set; }
     public string PubSubName { get; set; }
+    public DateTimeOffset PublishedAt { get; set; }
     public DateTimeOffset CreatedAt { get; set; }
 }

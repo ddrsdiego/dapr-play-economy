@@ -10,16 +10,14 @@ using Domain.AggregateModel.CustomerAggregate;
 using Helpers.Constants;
 using MediatR;
 using Microsoft.AspNetCore.Http;
-using Microsoft.Extensions.Logging;
 
 public static class Errors
 {
     public static class Customer
     {
-        public static Error UserNotFound(string id) => new("USER_NOT_FOUND", $"Client not found for id {id}");
+        public static Error UserNotFound(string id) => new("USER_NOT_FOUND", $"User not found for id {id}");
 
-        public static Error UserAlreadyExists(string email) =>
-            new("USER_ALREADY_EXISTS", $"User already exists for email {email}");
+        public static Error UserAlreadyExists(string email) => new("USER_ALREADY_EXISTS", $"User already exists for email {email}");
     }
 }
 
@@ -31,9 +29,7 @@ internal sealed class UpdateCustomerCommandHandler : IRequestHandler<UpdateCusto
     private readonly ICustomerRepository _customerRepository;
     private readonly IOutBoxMessagesRepository _outBoxMessagesRepository;
 
-    public UpdateCustomerCommandHandler(ILogger<UpdateCustomerCommandHandler> logger,
-        ICustomerRepository customerRepository, IOutBoxMessagesRepository outBoxMessagesRepository,
-        IUnitOfWorkFactory unitOfWorkFactory)
+    public UpdateCustomerCommandHandler(ICustomerRepository customerRepository, IOutBoxMessagesRepository outBoxMessagesRepository, IUnitOfWorkFactory unitOfWorkFactory)
     {
         _unitOfWorkFactory = unitOfWorkFactory;
         _customerRepository = customerRepository;
@@ -47,7 +43,6 @@ internal sealed class UpdateCustomerCommandHandler : IRequestHandler<UpdateCusto
             var customer = await _customerRepository.GetByIdAsync(command.UserId);
             if (customer.HasNoValue)
                 return Response.Fail(Errors.Customer.UserNotFound(command.UserId));
-
 
             customer.Value.UpdateName(command.Name);
             var customerNameUpdated = new CustomerNameUpdated(customer.Value.Identification.Id, customer.Value.Name);

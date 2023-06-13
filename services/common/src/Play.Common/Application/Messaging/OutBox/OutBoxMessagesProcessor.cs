@@ -49,37 +49,37 @@ public sealed class OutBoxMessagesProcessor : BoxMessagesProcessor, IOutBoxMessa
                 if (!lockResponse.Success)
                     continue;
 
-                var messagesPendingToPublish = await _outBoxMessagesRepository.GetMessagesPendingToPublishAsync(Config.MaxNumberAttempts, cancellationToken);
-                if (messagesPendingToPublish.Length > 0)
+                var filter = new OutBoxMessagesRepositoryFilter
                 {
-                    for (var index = 0; index < messagesPendingToPublish.Length; index++)
+                    NumberAttempts = Config.MaxNumberAttempts,
+                    BatchSize = Config.MaxProcessingMessagesCount
+                };
+
+                await foreach (var outBoxMessage in _outBoxMessagesRepository.GetMessagesPendingToPublishAsync(filter, cancellationToken))
+                {
+                    try
                     {
-                        var outBoxMessage = messagesPendingToPublish[index];
+                        await using var uow = await UnitOfWorkFactory.CreateAsync(cancellationToken);
 
-                        try
-                        {
-                            await using var uow = await UnitOfWorkFactory.CreateAsync(cancellationToken);
+                        uow.AddToContext(async () => await DaprClient.PublishEventAsync(Config.PubSubName, outBoxMessage.TopicName, outBoxMessage.ToEnvelopeMessage(), cancellationToken));
+                        uow.AddToContext(async () => await _outBoxMessagesRepository.UpdateToPublishedAsync(outBoxMessage, cancellationToken));
 
-                            uow.AddToContext(async () => await DaprClient.PublishEventAsync(Config.PubSubName, outBoxMessage.TopicName, outBoxMessage.ToEnvelopeMessage(), cancellationToken));
-                            uow.AddToContext(async () => await _outBoxMessagesRepository.UpdateToPublishedAsync(outBoxMessage, cancellationToken));
+                        await uow.SaveChangesAsync();
+                    }
+                    catch (Exception e)
+                    {
+                        await using var uow = await UnitOfWorkFactory.CreateAsync(cancellationToken);
 
-                            await uow.SaveChangesAsync();
-                        }
-                        catch (Exception e)
-                        {
-                            await using var uow = await UnitOfWorkFactory.CreateAsync(cancellationToken);
+                        if (outBoxMessage.NumberAttempts <= Config.MaxNumberAttempts)
+                            uow.AddToContext(async () => await _outBoxMessagesRepository.IncrementNumberAttemptsAsync(outBoxMessage, e.ToString(), cancellationToken));
+                        else
+                            uow.AddToContext(async () => await _outBoxMessagesRepository.IncrementNumberAttemptsAsync(outBoxMessage, e.ToString(), cancellationToken));
 
-                            if (outBoxMessage.NumberAttempts <= Config.MaxNumberAttempts)
-                                uow.AddToContext(async () => await _outBoxMessagesRepository.IncrementNumberAttemptsAsync(outBoxMessage, e.ToString(), cancellationToken));
-                            else
-                                uow.AddToContext(async () => await _outBoxMessagesRepository.IncrementNumberAttemptsAsync(outBoxMessage, e.ToString(), cancellationToken));
-
-                            await uow.SaveChangesAsync();
-                        }
+                        await uow.SaveChangesAsync();
                     }
                 }
             }
-            catch(Exception e)
+            catch (Exception e)
             {
                 Console.WriteLine(e);
             }

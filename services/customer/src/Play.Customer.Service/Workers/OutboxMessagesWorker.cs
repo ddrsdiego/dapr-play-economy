@@ -9,15 +9,9 @@ internal sealed class OutboxMessagesWorker : BackgroundService
 {
     private readonly IOutBoxMessagesProcessor _outBoxMessagesProcessor;
 
-    public OutboxMessagesWorker(IOutBoxMessagesProcessor outBoxMessagesProcessor)
-    {
-        _outBoxMessagesProcessor = outBoxMessagesProcessor;
-    }
+    public OutboxMessagesWorker(IOutBoxMessagesProcessor outBoxMessagesProcessor) => _outBoxMessagesProcessor = outBoxMessagesProcessor;
 
-    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
-    {
-        await _outBoxMessagesProcessor.RunAsync(stoppingToken);
-    }
+    protected override async Task ExecuteAsync(CancellationToken stoppingToken) => await _outBoxMessagesProcessor.RunAsync(stoppingToken);
 
     public override async Task StopAsync(CancellationToken cancellationToken)
     {

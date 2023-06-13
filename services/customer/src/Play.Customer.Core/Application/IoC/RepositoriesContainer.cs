@@ -31,8 +31,8 @@ internal static class RepositoriesContainer
         services.TryAddSingleton<IConnectionManager>(sp =>
         {
             var resiliencePolicy = Policy
-                .Handle<NpgsqlException>()
-                .Or<DbException>()
+                .Handle<DbException>()
+                .Or<Exception>()
                 .WaitAndRetryAsync(new[]
                 {
                     TimeSpan.FromMilliseconds(10),
@@ -56,25 +56,24 @@ internal static class RepositoriesContainer
                 {
                     PubSubName = "play-customer-service-pubsub",
                     LockStoreName = "play-customer-service-lock-store",
-                    ProcessingIntervalInSeconds = 5
+                    ProcessingIntervalInSeconds = 15
                 },
                 sp.GetRequiredService<IInBoxMessagesRepository>(),
                 sp.GetRequiredService<IUnitOfWorkFactory>(),
                 sp.GetRequiredService<DaprClient>()));
-        
+
         services.TryAddSingleton<IOutBoxMessagesProcessor>(sp =>
             new OutBoxMessagesProcessor(new BoxMessagesProcessorConfig
                 {
                     PubSubName = "play-customer-service-pubsub",
                     LockStoreName = "play-customer-service-lock-store",
-                    ProcessingIntervalInSeconds = 5
+                    ProcessingIntervalInSeconds = 15
                 },
                 sp.GetRequiredService<IOutBoxMessagesRepository>(),
                 sp.GetRequiredService<IUnitOfWorkFactory>(),
                 sp.GetRequiredService<DaprClient>()));
 
-        services.TryAddSingleton<IOutBoxMessagesRepository>(sp =>
-            new OutBoxMessagesRepository(sp.GetRequiredService<IConnectionManager>()));
+        services.TryAddSingleton<IOutBoxMessagesRepository>(sp => new OutBoxMessagesRepository(sp.GetRequiredService<IConnectionManager>()));
 
         return services;
     }

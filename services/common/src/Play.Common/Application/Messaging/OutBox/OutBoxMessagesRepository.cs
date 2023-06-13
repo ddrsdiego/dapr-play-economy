@@ -1,7 +1,8 @@
 ﻿namespace Play.Common.Application.Messaging.OutBox;
 
 using System;
-using System.Linq;
+using System.Collections.Generic;
+using System.Runtime.CompilerServices;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
@@ -10,11 +11,17 @@ using Extensions;
 using Infra.Repositories;
 using Messaging;
 
+public struct OutBoxMessagesRepositoryFilter
+{
+    public int BatchSize { get; set; }
+    public int NumberAttempts { get; set; }
+}
+
 public interface IOutBoxMessagesRepository
 {
     string Sender { get; }
 
-    Task<OutBoxMessage[]> GetMessagesPendingToPublishAsync(int numberAttempts, CancellationToken cancellationToken = default);
+    IAsyncEnumerable<OutBoxMessage> GetMessagesPendingToPublishAsync(OutBoxMessagesRepositoryFilter filter, CancellationToken cancellationToken = default);
 
     Task UpdateToPublishedAsync(OutBoxMessage outBoxMessages, CancellationToken cancellationToken = default);
 
@@ -27,11 +34,9 @@ public interface IOutBoxMessagesRepository
     /// <param name="payload"></param>
     /// <param name="cancellationToken"></param>
     /// <returns></returns>
-    Task SaveAsync(string pubSubName, string eventName, string topicName, object payload,
-        CancellationToken cancellationToken = default);
+    Task SaveAsync(string pubSubName, string eventName, string topicName, object payload, CancellationToken cancellationToken = default);
 
-    Task IncrementNumberAttemptsAsync(OutBoxMessage outBoxMessage, string errorMessage,
-        CancellationToken cancellationToken = default);
+    Task IncrementNumberAttemptsAsync(OutBoxMessage outBoxMessage, string errorMessage, CancellationToken cancellationToken = default);
 }
 
 public sealed class OutBoxMessagesRepository : BoxMessagesRepository, IOutBoxMessagesRepository
@@ -52,11 +57,9 @@ public sealed class OutBoxMessagesRepository : BoxMessagesRepository, IOutBoxMes
         }
     }
 
-    public async Task<OutBoxMessage[]> GetMessagesPendingToPublishAsync(int numberAttempts, CancellationToken cancellationToken = default)
+    public async IAsyncEnumerable<OutBoxMessage> GetMessagesPendingToPublishAsync(OutBoxMessagesRepositoryFilter filter, [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
         const string sql = OutBoxMessagesStatements.GetUnprocessedAsync;
-
-        var result = Array.Empty<OutBoxMessage>();
 
         cancellationToken.ThrowIfCancellationRequested();
 
@@ -65,14 +68,15 @@ public sealed class OutBoxMessagesRepository : BoxMessagesRepository, IOutBoxMes
             new
             {
                 ProcessorId = Processor.Value,
-                NumberAttempts = numberAttempts
+                NumberAttempts = filter.NumberAttempts,
+                BatchSize = filter.BatchSize,
+                Status = OutBoxMessage.OutBoxMessageStatus.Processing
             });
 
-        var outboxMessagesData = resultSet as OutBoxMessageData[] ?? resultSet.ToArray();
-        if (outboxMessagesData.Any())
-            result = outboxMessagesData.Select(x => x.ToOutboxMessage()).ToArray();
-
-        return result;
+        foreach (var outboxMessageData in resultSet)
+        {
+            yield return outboxMessageData.ToOutboxMessage();
+        }
     }
 
     public async Task UpdateToPublishedAsync(OutBoxMessage outBoxMessages, CancellationToken cancellationToken = default)
@@ -88,7 +92,7 @@ public sealed class OutBoxMessagesRepository : BoxMessagesRepository, IOutBoxMes
         await conn.ExecuteAsync(sql,
             new
             {
-                Id = outboxMessagePublished.MessageId,
+                outboxMessagePublished.MessageId,
                 outboxMessagePublished.Status,
                 SentAt = DateTimeOffset.UtcNow
             });
@@ -104,8 +108,12 @@ public sealed class OutBoxMessagesRepository : BoxMessagesRepository, IOutBoxMes
             PropertyNamingPolicy = JsonNamingPolicy.CamelCase
         });
 
-        var outboxMessage =
-            new OutBoxMessage(Processor.Value, Sender, pubSubName, eventName, topicName, payloadJson, payload.GetType().FullName);
+        var outboxMessage = new OutBoxMessage(pubSubName, eventName, topicName, payloadJson, payload.GetType().FullName)
+        {
+            Sender = Sender,
+            ProcessorId = Processor.Value,
+            Status = OutBoxMessage.OutBoxMessageStatus.Pending
+        };
 
         return InternalSaveAsync(outboxMessage, cancellationToken);
     }
@@ -138,13 +146,21 @@ public sealed class OutBoxMessagesRepository : BoxMessagesRepository, IOutBoxMes
     {
         const string createdStatusFollowUp = "Created";
 
-        cancellationToken.ThrowIfCancellationRequested();
+        try
+        {
+            cancellationToken.ThrowIfCancellationRequested();
 
-        var outboxMessageData = outBoxMessage.ToOutboxMessageData();
+            var outboxMessageData = outBoxMessage
+                .ToOutboxMessageData();
 
-        await using var conn = await ConnectionManager.GetOpenConnectionAsync(cancellationToken);
+            await using var conn = await ConnectionManager.GetOpenConnectionAsync(cancellationToken);
 
-        await conn.ExecuteAsync(OutBoxMessagesStatements.SaveAsync, outboxMessageData);
-        await RegisterFollowUpAsync(conn, outBoxMessage, createdStatusFollowUp);
+            await conn.ExecuteAsync(OutBoxMessagesStatements.SaveAsync, outboxMessageData);
+            await RegisterFollowUpAsync(conn, outBoxMessage, createdStatusFollowUp);
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine(e);
+        }
     }
 }

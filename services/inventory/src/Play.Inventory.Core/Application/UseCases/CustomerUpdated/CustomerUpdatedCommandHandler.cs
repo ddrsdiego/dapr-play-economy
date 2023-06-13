@@ -7,7 +7,7 @@ using Infra.Repositories.CustomerRepository;
 using MediatR;
 using Microsoft.AspNetCore.Http;
 
-internal sealed class CustomerUpdatedCommandHandler : IRequestHandler<CustomerUpdatedCommand,Response>
+internal sealed class CustomerUpdatedCommandHandler : IRequestHandler<UpdateCustomerNameCommand,Response>
 {
     private readonly IDaprStateEntryRepository<CustomerData> _customerDaprRepository;
 
@@ -16,16 +16,26 @@ internal sealed class CustomerUpdatedCommandHandler : IRequestHandler<CustomerUp
         _customerDaprRepository = customerDaprRepository;
     }
 
-    public async Task<Response> Handle(CustomerUpdatedCommand request, CancellationToken cancellationToken)
+    public async Task<Response> Handle(UpdateCustomerNameCommand request, CancellationToken cancellationToken)
     {
-        var customerResult = await _customerDaprRepository.GetCustomerByIdAsync(request.CustomerId, cancellationToken);
-        if (customerResult.IsFailure)
-            Response.Ok();
+        try
+        {
+            // throw new Exception("Test");
             
-        var newCustomer = new Customer(request.CustomerId, request.Name,
-            request.Email);
+            var customerResult = await _customerDaprRepository.GetCustomerByIdAsync(request.CustomerId, cancellationToken);
+            if (customerResult.IsFailure)
+                Response.Ok();
+            
+            var newCustomer = new Customer(request.CustomerId, request.Name,
+                request.Email);
                 
-        await _customerDaprRepository.UpsertAsync(newCustomer.ToStateEntry(), cancellationToken);
-        return Response.Ok(StatusCodes.Status204NoContent);
+            await _customerDaprRepository.UpsertAsync(newCustomer.ToStateEntry(), cancellationToken);
+            return Response.Ok(StatusCodes.Status204NoContent);
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine(e);
+            return Response.Ok(StatusCodes.Status400BadRequest);
+        }
     }
 }

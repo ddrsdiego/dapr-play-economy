@@ -9,6 +9,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Workers;
 
 public abstract class Program
 {
@@ -24,6 +25,7 @@ public abstract class Program
             .ConfigureWebHostDefaults(webBuilder => { webBuilder.UseStartup<Startup>(); })
             .ConfigureServices((context, services) =>
             {
+                services.AddHostedService<InBoxMessagesWorker>();
                 services.AddDaprClient();
                 services.AddControllers();
                 services.AddEndpointsApiExplorer();

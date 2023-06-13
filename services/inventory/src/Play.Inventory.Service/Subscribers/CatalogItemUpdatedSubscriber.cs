@@ -1,14 +1,16 @@
 ﻿namespace Play.Inventory.Service.Subscribers;
 
+using System;
 using System.Text.Json.Serialization;
-using Common.Application;
+using Common.Application.Messaging;
+using Common.Application.Messaging.InBox;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.DependencyInjection;
 using Core.Application.Helpers.Constants;
 using Core.Application.UseCases.CreateCatalogItem;
-using MediatR;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
 
 public readonly struct CatalogItemUpdated
 {
@@ -33,15 +35,28 @@ internal static class CatalogItemUpdatedSubscriber
     {
         endpoints.MapPost($"/{Topics.CatalogItemUpdated}", async context =>
         {
-            var readResult = await context.ReadFromBodyAsync<CatalogItemUpdated>();
-            if (readResult.IsFailure)
-                await context.Response.WriteAsync("", cancellationToken: context.RequestAborted);
+            var cancellationToken = context.RequestAborted;
 
-            var sender = context.RequestServices.GetRequiredService<ISender>();
-            var createCatalogItemCommand = readResult.Value.ToCommand();
+            var messageEnvelopeResult = await context.ReadFromBodyAsync<MessageEnvelope>();
+            if (messageEnvelopeResult.IsFailure)
+            {
+                context.Response.StatusCode = StatusCodes.Status404NotFound;
+                await context.Response.WriteAsJsonAsync(new NotFoundResult(), cancellationToken: cancellationToken);
+            }
 
-            var response = await sender.Send(createCatalogItemCommand, context.RequestAborted);
-            await response.WriteToPipeAsync(context.Response, context.RequestAborted);
+            try
+            {
+                var inBoxMessagesRepository = context.RequestServices.GetRequiredService<IInBoxMessagesRepository>();
+                await inBoxMessagesRepository.SaveAsync(messageEnvelopeResult.Value, cancellationToken);
+
+                context.Response.StatusCode = StatusCodes.Status200OK;
+                await context.Response.WriteAsJsonAsync(new OkResult(), cancellationToken: context.RequestAborted);
+            }
+            catch (Exception e)
+            {
+                context.Response.StatusCode = StatusCodes.Status400BadRequest;
+                await context.Response.WriteAsJsonAsync(new BadRequestResult(), cancellationToken: context.RequestAborted);
+            }
         }).WithTopic(DaprSettings.PubSub.Name, Topics.CatalogItemUpdated);
     }
 }
