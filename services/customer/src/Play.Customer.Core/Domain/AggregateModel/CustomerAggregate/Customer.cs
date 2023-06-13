@@ -29,10 +29,10 @@ public sealed class Customer : Entity, IAggregateRoot
         if (documentResult.IsFailure)
             throw new ArgumentException(documentResult.Error, nameof(document));
         
+        Name = name;
         Identification = new CustomerIdentification(customerId, emailResult.Value.Value, document);
         Email = emailResult.Value;
         Document = documentResult.Value;
-        Name = name;
         CreatedAt = createdAt;
     }
 

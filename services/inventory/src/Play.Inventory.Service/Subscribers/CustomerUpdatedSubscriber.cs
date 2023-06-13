@@ -1,8 +1,6 @@
 ﻿namespace Play.Inventory.Service.Subscribers;
 
 using System;
-using System.Text.Json.Serialization;
-using System.Threading.Tasks;
 using Common.Application.Messaging;
 using Common.Application.Messaging.InBox;
 using Microsoft.AspNetCore.Builder;
@@ -10,25 +8,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.DependencyInjection;
 using Core.Application.Helpers.Constants;
-using Core.Application.UseCases.CustomerUpdated;
 using Microsoft.AspNetCore.Mvc;
-
-public readonly struct CustomerUpdatedRequest
-{
-    [JsonConstructor]
-    public CustomerUpdatedRequest(string customerId, string name, string email)
-    {
-        CustomerId = customerId;
-        Name = name;
-        Email = email;
-    }
-
-    public string CustomerId { get; }
-    public string Name { get; }
-    public string Email { get; }
-
-    public CustomerUpdatedCommand ToCommand() => new(CustomerId, Name, Email);
-}
 
 internal static class CustomerUpdatedSubscriber
 {
@@ -40,19 +20,23 @@ internal static class CustomerUpdatedSubscriber
 
             var messageEnvelopeResult = await context.ReadFromBodyAsync<MessageEnvelope>();
             if (messageEnvelopeResult.IsFailure)
-                await context.Response.WriteAsync("", cancellationToken: cancellationToken);
+            {
+                context.Response.StatusCode = StatusCodes.Status404NotFound;
+                await context.Response.WriteAsJsonAsync(new NotFoundResult(), cancellationToken: cancellationToken);
+            }
 
             try
             {
-                
                 var inBoxMessagesRepository = context.RequestServices.GetRequiredService<IInBoxMessagesRepository>();
                 await inBoxMessagesRepository.SaveAsync(messageEnvelopeResult.Value, cancellationToken);
-                
+
+                context.Response.StatusCode = StatusCodes.Status200OK;
                 await context.Response.WriteAsJsonAsync(new OkResult(), cancellationToken: context.RequestAborted);
             }
             catch (Exception e)
             {
-                Console.WriteLine(e);
+                context.Response.StatusCode = StatusCodes.Status400BadRequest;
+                await context.Response.WriteAsJsonAsync(new BadRequestResult(), cancellationToken: context.RequestAborted);
             }
         }).WithTopic(DaprSettings.PubSub.Name, Topics.CustomerUpdated);
     }

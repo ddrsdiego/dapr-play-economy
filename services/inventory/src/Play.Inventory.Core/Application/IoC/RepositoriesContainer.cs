@@ -61,7 +61,7 @@ internal static class RepositoriesContainer
         var config = new BoxMessagesProcessorConfig
         {
             PubSubName = Helpers.Constants.DaprSettings.PubSub.Name,
-            LockStoreName = Helpers.Constants.DaprSettings.PubSub.LockStoreName,
+            LockStoreName = Helpers.Constants.DaprSettings.PubSub.LockStoreName
         };
 
         var daprClient = sp.GetRequiredService<DaprClient>();

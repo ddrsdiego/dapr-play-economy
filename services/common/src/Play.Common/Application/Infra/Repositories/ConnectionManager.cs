@@ -27,8 +27,7 @@ public sealed class ConnectionManager : IConnectionManager
     private readonly IAsyncPolicy _resiliencePolicy;
     private readonly DbProviderFactory _providerFactory;
 
-    public ConnectionManager(DbProviderFactory providerFactory, string connectionString,
-        IAsyncPolicy resiliencePolicy = null)
+    public ConnectionManager(DbProviderFactory providerFactory, string connectionString, IAsyncPolicy resiliencePolicy = null)
     {
         _providerFactory = providerFactory;
         ConnectionString = connectionString;
@@ -46,13 +45,13 @@ public sealed class ConnectionManager : IConnectionManager
 
     public ITransactionManager TransactionManager { get; private set; }
 
-    public string ConnectionString { get; set; }
+    public string ConnectionString { get; }
 
     public async Task<DbConnection> GetOpenConnectionAsync(CancellationToken cancellationToken = default)
     {
         await _semaphore.WaitAsync(cancellationToken);
 
-        DbConnection connection;
+        DbConnection connection = default;
 
         try
         {
@@ -74,7 +73,7 @@ public sealed class ConnectionManager : IConnectionManager
 
     private async Task<DbConnection> TryOpenConnectionAsync(CancellationToken cancellationToken = default)
     {
-        DbConnection dbConnection;
+        DbConnection dbConnection = default;
 
         try
         {

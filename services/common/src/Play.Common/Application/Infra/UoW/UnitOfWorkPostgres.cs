@@ -24,13 +24,10 @@ public sealed class UnitOfWorkPostgres : UnitOfWork
             });
     }
 
-    private UnitOfWorkPostgres(string connectionString, CancellationToken cancellationToken)
-        : base(Guid.NewGuid().ToString(), new ConnectionManager(NpgsqlFactory.Instance, connectionString, ResiliencePolicy), cancellationToken)
+    private UnitOfWorkPostgres(IConnectionManager connectionManager, CancellationToken cancellationToken)
+        : base(Guid.NewGuid().ToString(), connectionManager, cancellationToken)
     {
     }
 
-    public static IUnitOfWork Create(IConnectionManager connectionManager, CancellationToken cancellationToken)
-    {
-        return new UnitOfWorkPostgres(connectionManager.ConnectionString, cancellationToken);
-    }
+    public static IUnitOfWork Create(IConnectionManager connectionManager, CancellationToken cancellationToken) => new UnitOfWorkPostgres(connectionManager, cancellationToken);
 }

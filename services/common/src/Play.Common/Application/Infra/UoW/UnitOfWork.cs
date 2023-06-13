@@ -29,6 +29,7 @@ public abstract class UnitOfWork : IUnitOfWork
     protected UnitOfWork(string unitOfWorkContextId, IConnectionManager connectionManager, CancellationToken cancellationToken = default)
     {
         _methods = new LinkedList<UnitOfWorkProcess>();
+
         UnitOfWorkContextId = unitOfWorkContextId;
         ConnectionManager = connectionManager;
         _cancellationToken = cancellationToken;
@@ -36,7 +37,7 @@ public abstract class UnitOfWork : IUnitOfWork
 
     public string UnitOfWorkContextId { get; }
 
-    public IConnectionManager ConnectionManager { get; private set; }
+    public IConnectionManager ConnectionManager { get; }
 
     public virtual async Task BeginTransactionAsync()
     {
@@ -44,8 +45,8 @@ public abstract class UnitOfWork : IUnitOfWork
         {
             _cancellationToken.ThrowIfCancellationRequested();
 
-            await ConnectionManager.GetOpenConnectionAsync(_cancellationToken);
             await ConnectionManager.BeginTransactionAsync(_cancellationToken);
+            _committed = false;
         }
         catch (OperationCanceledException e)
         {
@@ -61,9 +62,19 @@ public abstract class UnitOfWork : IUnitOfWork
     {
         try
         {
+            if (_methods.Count == 0) return;
+
             _cancellationToken.ThrowIfCancellationRequested();
 
-            foreach (var process in _methods)
+            LinkedList<UnitOfWorkProcess> localMethods;
+
+            lock (_syncLock)
+            {
+                localMethods = _methods;
+                _methods = new LinkedList<UnitOfWorkProcess>();
+            }
+
+            foreach (var process in localMethods)
             {
                 await process.Method().ConfigureAwait(false);
             }
@@ -83,9 +94,10 @@ public abstract class UnitOfWork : IUnitOfWork
         {
             await DisposeAsync();
         }
-        catch (Exception e)
+        catch (InvalidOperationException e)
         {
             await DisposeAsync();
+            throw;
         }
     }
 
@@ -101,9 +113,11 @@ public abstract class UnitOfWork : IUnitOfWork
 
     public async ValueTask DisposeAsync()
     {
-        ConnectionManager?.TransactionManager?.Dispose();
-        await ConnectionManager?.CloseAsync(_cancellationToken);
-        ConnectionManager?.Dispose();
+        if (ConnectionManager?.TransactionManager != null)
+        {
+            ConnectionManager.TransactionManager.Dispose();
+            await ConnectionManager.CloseAsync(_cancellationToken);
+        }
 
         Dispose();
     }
@@ -119,16 +133,16 @@ public abstract class UnitOfWork : IUnitOfWork
         if (_disposed) return;
         if (disposing)
         {
-            _methods = null;
+            lock (_syncLock)
+            {
+                _methods = null;
+            }
+
             ConnectionManager?.TransactionManager?.Dispose();
-            ConnectionManager = null;
         }
 
         _disposed = true;
     }
 
-    ~UnitOfWork()
-    {
-        Dispose(false);
-    }
+    ~UnitOfWork() => Dispose(false);
 }

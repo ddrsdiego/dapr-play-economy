@@ -16,10 +16,10 @@ public abstract class BoxMessagesRepository
     }
 
     protected readonly MessagesProcessorId Processor;
-    
+
     protected readonly IConnectionManager ConnectionManager;
 
-    protected static Task RegisterFollowUpAsync(IDbConnection conn, BoxMessage outboxMessagePublished, string status,
+    protected static Task RegisterFollowUpAsync(IDbConnection conn, OutBoxMessage outboxMessagePublished, string status,
         string errorMessage = "")
     {
         const string sql = OutBoxMessagesStatements.SaveFollowUpAsync;
@@ -29,7 +29,7 @@ public abstract class BoxMessagesRepository
                 BoxMessagesId = outboxMessagePublished.MessageId,
                 Status = status,
                 UpdatedAt = DateTimeOffset.UtcNow,
-                Exception = !string.IsNullOrWhiteSpace(errorMessage) ? errorMessage : null
+                Exception = string.IsNullOrWhiteSpace(errorMessage) ? null : errorMessage
             });
     }
 }

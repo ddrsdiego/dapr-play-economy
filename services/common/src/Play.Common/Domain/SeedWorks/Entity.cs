@@ -27,7 +27,7 @@ public abstract class Entity
 
     protected void AddNotification(INotification eventItem)
     {
-        _notifications = _notifications ?? new List<INotification>();
+        _notifications ??= new List<INotification>();
         _notifications.Add(eventItem);
     }
 

@@ -5,6 +5,7 @@ using Common.Application;
 using Common.Application.Infra.Repositories.Dapr;
 using Core.Application.Helpers.Constants;
 using Core.Application.Infra.Repositories.CatalogItemRepository;
+using Core.Application.UseCases.CreateCatalogItem;
 using Core.Domain.AggregateModel.CatalogItemAggregate;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
@@ -27,6 +28,8 @@ public readonly struct CatalogItemCreated
     public string Name { get; }
     public string Description { get; }
     public decimal UnitPrice { get; }
+    
+    public CreateCatalogItemCommand ToCommand() => new(CatalogItemId, Name, Description, UnitPrice);
 }
 
 internal static class CatalogItemCreatedSubscriber
@@ -42,7 +45,7 @@ internal static class CatalogItemCreatedSubscriber
                 var response = Response.Fail(error);
                 await response.WriteToPipeAsync(context.Response);
             }
-            
+
             var catalogItemDaprRepository =
                 context.RequestServices.GetRequiredService<IDaprStateEntryRepository<CatalogItemData>>();
 
