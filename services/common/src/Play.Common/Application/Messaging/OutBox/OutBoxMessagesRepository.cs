@@ -21,7 +21,7 @@ public interface IOutBoxMessagesRepository
 {
     string Sender { get; }
 
-    IAsyncEnumerable<OutBoxMessage> GetMessagesPendingToPublishAsync(OutBoxMessagesRepositoryFilter filter, CancellationToken cancellationToken = default);
+    IAsyncEnumerable<OutBoxMessage> FetchUnprocessedAsync(OutBoxMessagesRepositoryFilter filter, CancellationToken cancellationToken = default);
 
     Task UpdateToPublishedAsync(OutBoxMessage outBoxMessages, CancellationToken cancellationToken = default);
 
@@ -42,6 +42,7 @@ public interface IOutBoxMessagesRepository
 public sealed class OutBoxMessagesRepository : BoxMessagesRepository, IOutBoxMessagesRepository
 {
     private string _sender;
+    private static readonly SemaphoreSlim SemaphoreFetchUnprocessed = new(1, 1);
 
     public OutBoxMessagesRepository(IConnectionManager connectionManager)
         : base(connectionManager)
@@ -57,21 +58,40 @@ public sealed class OutBoxMessagesRepository : BoxMessagesRepository, IOutBoxMes
         }
     }
 
-    public async IAsyncEnumerable<OutBoxMessage> GetMessagesPendingToPublishAsync(OutBoxMessagesRepositoryFilter filter, [EnumeratorCancellation] CancellationToken cancellationToken = default)
+    public async IAsyncEnumerable<OutBoxMessage> FetchUnprocessedAsync(OutBoxMessagesRepositoryFilter filter, [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
-        const string sql = OutBoxMessagesStatements.GetUnprocessedAsync;
+        const string sql = OutBoxMessagesStatements.FetchUnprocessedAsync;
 
-        cancellationToken.ThrowIfCancellationRequested();
+        IEnumerable<OutBoxMessageData> resultSet;
+        try
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            
+            await SemaphoreFetchUnprocessed.WaitAsync(cancellationToken);
 
-        await using var conn = await ConnectionManager.GetOpenConnectionAsync(cancellationToken);
-        var resultSet = await conn.QueryAsync<OutBoxMessageData>(sql,
-            new
-            {
-                ProcessorId = Processor.Value,
-                NumberAttempts = filter.NumberAttempts,
-                BatchSize = filter.BatchSize,
-                Status = OutBoxMessage.OutBoxMessageStatus.Processing
-            });
+            await using var conn = await ConnectionManager.GetOpenConnectionAsync(cancellationToken);
+            await using var transaction = await conn.BeginTransactionAsync(cancellationToken);
+
+            resultSet = await conn.QueryAsync<OutBoxMessageData>(sql,
+                new
+                {
+                    ProcessorId = Processor.Value,
+                    filter.NumberAttempts,
+                    filter.BatchSize,
+                    Status = OutBoxMessage.OutBoxMessageStatus.Processing
+                });
+
+            await transaction.CommitAsync(cancellationToken);
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine(e);
+            throw;
+        }
+        finally
+        {
+            SemaphoreFetchUnprocessed.Release();
+        }
 
         foreach (var outboxMessageData in resultSet)
         {
@@ -89,14 +109,18 @@ public sealed class OutBoxMessagesRepository : BoxMessagesRepository, IOutBoxMes
         var outboxMessagePublished = outBoxMessages.ToMessagePublished();
 
         await using var conn = await ConnectionManager.GetOpenConnectionAsync(cancellationToken);
+        await using var transaction = await conn.BeginTransactionAsync(cancellationToken);
+        
         await conn.ExecuteAsync(sql,
             new
             {
                 outboxMessagePublished.MessageId,
                 outboxMessagePublished.Status,
-                SentAt = DateTimeOffset.UtcNow
+                SentAt = DateTime.Now
             });
         await RegisterFollowUpAsync(conn, outboxMessagePublished, publishedStatusFollowUp);
+        
+        await transaction.CommitAsync(cancellationToken);
     }
 
     public Task SaveAsync(string pubSubName, string eventName, string topicName, object payload, CancellationToken cancellationToken = default)

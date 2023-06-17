@@ -55,7 +55,7 @@ public sealed class OutBoxMessagesProcessor : BoxMessagesProcessor, IOutBoxMessa
                     BatchSize = Config.MaxProcessingMessagesCount
                 };
 
-                await foreach (var outBoxMessage in _outBoxMessagesRepository.GetMessagesPendingToPublishAsync(filter, cancellationToken))
+                await foreach (var outBoxMessage in _outBoxMessagesRepository.FetchUnprocessedAsync(filter, cancellationToken))
                 {
                     try
                     {

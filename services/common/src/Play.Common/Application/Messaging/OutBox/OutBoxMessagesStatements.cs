@@ -20,9 +20,15 @@ internal static class OutBoxMessagesStatements
     public const string SaveFollowUpAsync =
         "INSERT INTO public.\"OutBoxMessagesFollowUp\"( \"MessageId\", \"Status\", \"UpdatedAt\", \"Exception\" ) VALUES (@BoxMessagesId, @Status, @UpdatedAt, @Exception)";
 
-    public const string GetUnprocessedAsync = @"
+    public const string FetchUnprocessedAsync = @"
         WITH locked_row AS (
-            SELECT * FROM public.""OutBoxMessages"" WHERE ""CompletedAt"" IS NULL AND ""NumberAttempts"" <= @NumberAttempts FOR UPDATE LIMIT @BatchSize
+            SELECT MessageId
+            FROM public.""OutBoxMessages""
+            WHERE
+                ""CompletedAt"" IS NULL
+                AND ""NumberAttempts"" <= @NumberAttempts
+            FOR UPDATE SKIP LOCKED
+            LIMIT @BatchSize
         )
         UPDATE public.""OutBoxMessages"" SET
             ""Status"" = 'Processing'
