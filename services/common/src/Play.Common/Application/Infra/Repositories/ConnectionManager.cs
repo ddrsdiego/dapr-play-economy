@@ -12,12 +12,31 @@ public interface IConnectionManager : IDisposable
 {
     string ConnectionString { get; }
 
+    /// <summary>
+    /// This method starts an asynchronous transaction.
+    /// It returns a task that can wait until the transaction starts.
+    /// </summary>
+    /// <param name="cancellationToken">The optional cancellationToken parameter can be used to cancel the operation</param>
     Task BeginTransactionAsync(CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// 
+    /// </summary>
     ITransactionManager TransactionManager { get; }
 
+    /// <summary>
+    /// This method closes the connection asynchronously.
+    /// It returns a task that can wait until the connection is closed.
+    /// </summary>
+    /// <param name="cancellationToken">The optional cancellationToken parameter can be used to cancel the operation.</param>
     Task CloseAsync(CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// This method returns an asynchronously opened database connection.
+    /// It returns a task that can wait until the connection is ready.
+    /// </summary>
+    /// <param name="cancellationToken">The optional cancellationToken parameter can be used to cancel the operation</param>
+    /// <returns>The return type is DbConnection, which represents a generic database connection.</returns>
     Task<DbConnection> GetOpenConnectionAsync(CancellationToken cancellationToken = default);
 }
 
@@ -27,7 +46,8 @@ public sealed class ConnectionManager : IConnectionManager
     private readonly IAsyncPolicy _resiliencePolicy;
     private readonly DbProviderFactory _providerFactory;
 
-    public ConnectionManager(DbProviderFactory providerFactory, string connectionString, IAsyncPolicy resiliencePolicy = null)
+    public ConnectionManager(DbProviderFactory providerFactory, string connectionString,
+        IAsyncPolicy resiliencePolicy = null)
     {
         _providerFactory = providerFactory;
         ConnectionString = connectionString;
@@ -37,21 +57,31 @@ public sealed class ConnectionManager : IConnectionManager
 
     public Task BeginTransactionAsync(CancellationToken cancellationToken = default)
     {
-        TransactionManager ??= new TransactionManager();
-        TransactionManager.BeginTransaction();
+        try
+        {
+            cancellationToken.ThrowIfCancellationRequested();
 
-        return Task.CompletedTask;
+            TransactionManager ??= new TransactionManager();
+            TransactionManager.BeginTransaction();
+
+            return Task.CompletedTask;
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine(e);
+            throw;
+        }
     }
 
     public ITransactionManager TransactionManager { get; private set; }
 
-    public string ConnectionString { get; }
+    public string ConnectionString { get; set; }
 
     public async Task<DbConnection> GetOpenConnectionAsync(CancellationToken cancellationToken = default)
     {
         await _semaphore.WaitAsync(cancellationToken);
 
-        DbConnection connection = default;
+        DbConnection connection;
 
         try
         {
@@ -73,13 +103,19 @@ public sealed class ConnectionManager : IConnectionManager
 
     private async Task<DbConnection> TryOpenConnectionAsync(CancellationToken cancellationToken = default)
     {
-        DbConnection dbConnection = default;
+        DbConnection dbConnection;
 
         try
         {
             cancellationToken.ThrowIfCancellationRequested();
 
             dbConnection = _providerFactory.CreateConnection();
+            if (dbConnection == null)
+            {
+                throw new ArgumentNullException(nameof(dbConnection), 
+                    "The database connection could not be created. Please check the provider factory and ensure it returns a valid connection object.");
+            }
+            
             dbConnection.ConnectionString = ConnectionString;
 
             if (dbConnection.State != ConnectionState.Open)
