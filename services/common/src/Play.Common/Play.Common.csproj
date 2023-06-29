@@ -37,8 +37,5 @@
         <PackageReference Include="Serilog.Sinks.Async" Version="1.5.0" />
         <PackageReference Include="Serilog.Sinks.Console" Version="4.1.0" />
     </ItemGroup>
-    <ItemGroup>
-      <Folder Include="Application\Infra\UoW\Observers\Observables\" />
-    </ItemGroup>
 
 </Project>

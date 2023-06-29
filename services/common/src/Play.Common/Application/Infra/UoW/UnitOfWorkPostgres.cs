@@ -4,7 +4,8 @@ using System;
 using System.Data.Common;
 using System.Threading;
 using Npgsql;
-using Repositories;
+using Play.Common;
+using Play.Common.Application.Infra.Repositories;
 using Polly;
 
 public sealed class UnitOfWorkPostgres : UnitOfWork
@@ -24,10 +25,19 @@ public sealed class UnitOfWorkPostgres : UnitOfWork
             });
     }
 
-    private UnitOfWorkPostgres(IConnectionManager connectionManager, CancellationToken cancellationToken)
-        : base(Guid.NewGuid().ToString(), connectionManager, cancellationToken)
+    private UnitOfWorkPostgres(string connectionString, CancellationToken cancellationToken)
+        : base(GeneratorOperationId.Generate(), new ConnectionManager(NpgsqlFactory.Instance, connectionString, ResiliencePolicy), cancellationToken)
     {
     }
 
-    public static IUnitOfWork Create(IConnectionManager connectionManager, CancellationToken cancellationToken) => new UnitOfWorkPostgres(connectionManager, cancellationToken);
+    private UnitOfWorkPostgres(string unitOfWorkContextId, string connectionString, CancellationToken cancellationToken)
+        : base(unitOfWorkContextId, new ConnectionManager(NpgsqlFactory.Instance, connectionString, ResiliencePolicy), cancellationToken)
+    {
+    }
+
+    public static IUnitOfWork Create(IConnectionManager connectionManager, CancellationToken cancellationToken) =>
+        new UnitOfWorkPostgres(Guid.NewGuid().ToString(), connectionManager.ConnectionString, cancellationToken);
+
+    public static IUnitOfWork Create(string unitOfWorkContextId, IConnectionManager connectionManager, CancellationToken cancellationToken) =>
+        new UnitOfWorkPostgres(unitOfWorkContextId, connectionManager.ConnectionString, cancellationToken);
 }

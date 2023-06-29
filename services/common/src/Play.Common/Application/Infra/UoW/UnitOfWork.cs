@@ -4,6 +4,8 @@ using System;
 using System.Collections.Concurrent;
 using System.Threading;
 using System.Threading.Tasks;
+using Observers.EnqueueWork.Observables;
+using Observers.SaveChanges.Observables;
 using Repositories;
 
 public interface IUnitOfWork :
@@ -19,6 +21,14 @@ public interface IUnitOfWork :
     int QueueLength { get; }
 
     void AddToContext(Func<Task> method);
+
+    Task AddToContextAsync(Func<Task> method);
+
+    Task AddToContextAsync(string workId, Func<Task> method);
+
+    void ConnectEnqueueWorkObserver(EnqueueWorkObservable enqueueWorkObservable);
+
+    void ConnectSaveChangesObserver(SaveChangesObservable saveChangesObservable);
 }
 
 public abstract class UnitOfWork : IUnitOfWork
@@ -29,12 +39,15 @@ public abstract class UnitOfWork : IUnitOfWork
 
     private readonly SemaphoreSlim _commitLock;
     private readonly CancellationToken _cancellationToken;
+    private EnqueueWorkObservable _enqueueWorkObservable;
+    private SaveChangesObservable _saveChangesObservable;
+
     private ConcurrentQueue<UnitOfWorkProcess> _methods;
 
     protected UnitOfWork(string unitOfWorkContextId, IConnectionManager connectionManager, CancellationToken cancellationToken = default)
     {
         ConnectionManager = connectionManager;
-        UnitOfWorkContextId = unitOfWorkContextId;
+        UnitOfWorkContextId = $"{unitOfWorkContextId}-{GeneratorOperationId.Generate()}";
 
         _cancellationToken = cancellationToken;
         _methods = new ConcurrentQueue<UnitOfWorkProcess>();
@@ -80,18 +93,28 @@ public abstract class UnitOfWork : IUnitOfWork
 
             try
             {
-                if (_newTransaction)
-                {
-                    while (_methods.TryDequeue(out var process))
-                    {
-                        await process.Method().ConfigureAwait(false);
-                    }
-
-                    await CommitAsync();
-                    _newTransaction = false;
-                }
-                else
+                if (!_newTransaction)
                     throw new InvalidOperationException("There is no transaction in progress.");
+
+                while (_methods.TryDequeue(out var process))
+                {
+                    try
+                    {
+                        await _saveChangesObservable.OnPreProcess(process);
+
+                        await process.Method().ConfigureAwait(false);
+
+                        await _saveChangesObservable.OnPostProcess(process);
+                    }
+                    catch (Exception e)
+                    {
+                        await _saveChangesObservable.OnErrorProcess(process, e);
+                        throw;
+                    }
+                }
+
+                await CommitAsync();
+                _newTransaction = false;
             }
             finally
             {
@@ -101,10 +124,17 @@ public abstract class UnitOfWork : IUnitOfWork
         catch (OperationCanceledException e)
         {
             await DisposeAsync();
+            throw;
         }
         catch (InvalidOperationException e)
         {
             await DisposeAsync();
+            throw;
+        }
+        catch (Exception e)
+        {
+            await DisposeAsync();
+            throw;
         }
     }
 
@@ -126,8 +156,25 @@ public abstract class UnitOfWork : IUnitOfWork
     {
         if (method == null) throw new ArgumentNullException(nameof(method));
 
-        _methods.Enqueue(new UnitOfWorkProcess(UnitOfWorkContextId, method));
+        _methods.Enqueue(new UnitOfWorkProcess(UnitOfWorkContextId, GeneratorOperationId.Generate(), method));
     }
+
+    public Task AddToContextAsync(Func<Task> method) => AddToContextAsync(GeneratorOperationId.Generate(), method);
+
+    public async Task AddToContextAsync(string workId, Func<Task> method)
+    {
+        if (method == null) throw new ArgumentNullException(nameof(method));
+
+        await _enqueueWorkObservable.OnPreProcess();
+
+        _methods.Enqueue(new UnitOfWorkProcess(UnitOfWorkContextId, workId, method));
+
+        await _enqueueWorkObservable.OnPostProcess();
+    }
+
+    public void ConnectEnqueueWorkObserver(EnqueueWorkObservable enqueueWorkObservable) => _enqueueWorkObservable = enqueueWorkObservable;
+
+    public void ConnectSaveChangesObserver(SaveChangesObservable saveChangesObservable) => _saveChangesObservable = saveChangesObservable;
 
     public async ValueTask DisposeAsync()
     {
