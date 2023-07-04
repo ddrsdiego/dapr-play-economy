@@ -4,6 +4,7 @@ using System.Data.Common;
 using Common.Application.Infra.Repositories;
 using Common.Application.Infra.Repositories.Dapr;
 using Common.Application.Infra.UoW;
+using Common.Application.Infra.UoW.Observers.SaveChanges;
 using Common.Application.Messaging;
 using Common.Application.Messaging.InBox;
 using Common.Application.Messaging.OutBox;
@@ -11,6 +12,7 @@ using Dapr.Client;
 using Infra.Repositories.CatalogItemRepository;
 using Infra.Repositories.CustomerRepository;
 using Infra.Repositories.InventoryItemRepository;
+using LogCo.Delivery.GestaoEntregas.Itinerary.Data;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -30,16 +32,19 @@ internal static class RepositoriesContainer
         services.TryAddSingleton<DbProviderFactory>(NpgsqlFactory.Instance);
         services.TryAddSingleton(TryAddInBoxMessagesProcessor);
         services.TryAddSingleton(TryAddConnectionManager);
+
         services.TryAddSingleton<IUnitOfWorkFactory>(sp =>
         {
-            var connectionManager = sp.GetRequiredService<IConnectionManager>();
-            return new UnitOfWorkFactory(connectionManager);
+            var unitOfWorkFactory = new UnitOfWorkFactory(sp.GetRequiredService<ITransactionManagerFactory>());
+            unitOfWorkFactory.ConnectSaveChangesObserver(new LogSaveChangesObserver(sp));
+
+            return unitOfWorkFactory;
         });
         
         return services;
     }
 
-    private static IConnectionManager TryAddConnectionManager(IServiceProvider sp)
+    private static IConnectionManagerFactory TryAddConnectionManager(IServiceProvider sp)
     {
         var resiliencePolicy = Policy
             .Handle<NpgsqlException>()
@@ -52,8 +57,9 @@ internal static class RepositoriesContainer
             });
 
         var npgsqlFactory = sp.GetRequiredService<DbProviderFactory>();
-        var connectionString = sp.GetRequiredService<IConfiguration>().GetSection("ConnectionStringOptions:PostgresConnection").Value;
-        return new ConnectionManager(npgsqlFactory, connectionString, resiliencePolicy);
+        var transactionManager = sp.GetRequiredService<ITransactionManagerFactory>();
+        var configuration = sp.GetRequiredService<IConfiguration>();
+        return new ConnectionManagerFactory(configuration, npgsqlFactory, transactionManager, resiliencePolicy);
     }
 
     private static IInBoxMessagesProcessor TryAddInBoxMessagesProcessor(IServiceProvider sp)

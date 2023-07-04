@@ -1,7 +1,5 @@
 ﻿namespace Play.Common.Application.Infra.UoW;
 
-using System;
-using System.Threading;
 using System.Threading.Tasks;
 using LogCo.Delivery.GestaoEntregas.RouterAdapter.CrossCutting.Commons;
 using Observers.EnqueueWork;
@@ -15,39 +13,37 @@ public interface IUnitOfWorkFactory :
     ISaveChangesObserverConnector
 {
     /// <summary>
-    /// Create a new unit of work.
+    /// 
     /// </summary>
-    /// <param name="cancellationToken"></param>
     /// <returns></returns>
-    Task<IUnitOfWork> CreateAsync(CancellationToken cancellationToken = default);
+    ValueTask<IUnitOfWork> CreateAsync();
 
     /// <summary>
     /// 
     /// </summary>
     /// <param name="unitOfWorkContextId"></param>
-    /// <param name="cancellationToken"></param>
     /// <returns></returns>
-    Task<IUnitOfWork> CreateAsync(string unitOfWorkContextId, CancellationToken cancellationToken = default);
+    ValueTask<IUnitOfWork> CreateAsync(string unitOfWorkContextId);
 }
 
 public sealed class UnitOfWorkFactory : IUnitOfWorkFactory
 {
-    private readonly IConnectionManager _connectionManager;
     private readonly EnqueueWorkObservable _enqueueWorkObservable;
     private readonly SaveChangesObservable _saveChangesObservable;
+    private readonly ITransactionManagerFactory _transactionFactory;
 
-    public UnitOfWorkFactory(IConnectionManager connectionManager)
+    public UnitOfWorkFactory(ITransactionManagerFactory transactionManagerFactory)
     {
-        _connectionManager = connectionManager;
+        _transactionFactory = transactionManagerFactory;
         _enqueueWorkObservable = new EnqueueWorkObservable();
         _saveChangesObservable = new SaveChangesObservable();
     }
 
-    public Task<IUnitOfWork> CreateAsync(CancellationToken cancellationToken = default) => CreateAsync(Guid.NewGuid().ToString(), cancellationToken);
+    public ValueTask<IUnitOfWork> CreateAsync() => CreateAsync(GeneratorOperationId.Generate());
 
-    public async Task<IUnitOfWork> CreateAsync(string unitOfWorkContextId, CancellationToken cancellationToken = default)
+    public async ValueTask<IUnitOfWork> CreateAsync(string unitOfWorkContextId)
     {
-        var unitOfWork = UnitOfWorkPostgres.Create(unitOfWorkContextId, _connectionManager, cancellationToken);
+        var unitOfWork = UnitOfWorkPostgres.Create(unitOfWorkContextId, _transactionFactory);
 
         unitOfWork.ConnectEnqueueWorkObserver(_enqueueWorkObservable);
         unitOfWork.ConnectSaveChangesObserver(_saveChangesObservable);

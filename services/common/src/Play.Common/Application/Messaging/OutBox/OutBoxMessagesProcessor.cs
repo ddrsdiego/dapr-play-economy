@@ -59,23 +59,23 @@ public sealed class OutBoxMessagesProcessor : BoxMessagesProcessor, IOutBoxMessa
                 {
                     try
                     {
-                        await using var uow = await UnitOfWorkFactory.CreateAsync(cancellationToken);
+                        await using var uow = await UnitOfWorkFactory.CreateAsync();
 
-                        uow.AddToContext(async () => await DaprClient.PublishEventAsync(Config.PubSubName, outBoxMessage.TopicName, outBoxMessage.ToEnvelopeMessage(), cancellationToken));
-                        uow.AddToContext(async () => await _outBoxMessagesRepository.UpdateToPublishedAsync(outBoxMessage, cancellationToken));
+                        await uow.AddToContextAsync(async () => await DaprClient.PublishEventAsync(Config.PubSubName, outBoxMessage.TopicName, outBoxMessage.ToEnvelopeMessage(), cancellationToken));
+                        await uow.AddToContextAsync(async () => await _outBoxMessagesRepository.UpdateToPublishedAsync(outBoxMessage, cancellationToken));
 
-                        await uow.SaveChangesAsync();
+                        await uow.SaveChangesAsync(cancellationToken);
                     }
                     catch (Exception e)
                     {
-                        await using var uow = await UnitOfWorkFactory.CreateAsync(cancellationToken);
+                        await using var uow = await UnitOfWorkFactory.CreateAsync();
 
                         if (outBoxMessage.NumberAttempts <= Config.MaxNumberAttempts)
-                            uow.AddToContext(async () => await _outBoxMessagesRepository.IncrementNumberAttemptsAsync(outBoxMessage, e.ToString(), cancellationToken));
+                            await uow.AddToContextAsync(async () => await _outBoxMessagesRepository.IncrementNumberAttemptsAsync(outBoxMessage, e.ToString(), cancellationToken));
                         else
-                            uow.AddToContext(async () => await _outBoxMessagesRepository.IncrementNumberAttemptsAsync(outBoxMessage, e.ToString(), cancellationToken));
+                            await uow.AddToContextAsync(async () => await _outBoxMessagesRepository.IncrementNumberAttemptsAsync(outBoxMessage, e.ToString(), cancellationToken));
 
-                        await uow.SaveChangesAsync();
+                        await uow.SaveChangesAsync(cancellationToken);
                     }
                 }
             }

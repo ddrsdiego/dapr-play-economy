@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using Common.Api;
 using Common.Application.Infra.Repositories;
 using Common.Application.Infra.UoW;
+using Common.Application.Infra.UoW.Observers.SaveChanges;
 using Common.Application.Messaging;
 using Common.Application.Messaging.InBox;
 using Common.Application.Messaging.OutBox;
@@ -14,6 +15,7 @@ using Core.Application.Helpers;
 using Core.Application.IoC;
 using Core.Application.UseCases.CreateNewCatalogItem;
 using Dapr.Client;
+using LogCo.Delivery.GestaoEntregas.Itinerary.Data;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -46,7 +48,8 @@ public abstract class Program
                 }));
                 services.AddControllers(options => options.SuppressAsyncSuffixInActionNames = false);
                 services.TryAddSingleton<DbProviderFactory>(NpgsqlFactory.Instance);
-                services.TryAddSingleton<IConnectionManager>(sp =>
+
+                services.TryAddSingleton<IConnectionManagerFactory>(sp =>
                 {
                     var resiliencePolicy = Policy
                         .Handle<NpgsqlException>()
@@ -59,15 +62,17 @@ public abstract class Program
                         });
 
                     var npgsqlFactory = sp.GetRequiredService<DbProviderFactory>();
-                    var connectionString = sp.GetRequiredService<IConfiguration>()
-                        .GetSection("ConnectionStringOptions:PostgresConnection").Value;
-                    return new ConnectionManager(npgsqlFactory, connectionString, resiliencePolicy);
+                    var transactionManager = sp.GetRequiredService<ITransactionManagerFactory>();
+                    var configuration = sp.GetRequiredService<IConfiguration>();
+                    return new ConnectionManagerFactory(configuration, npgsqlFactory, transactionManager, resiliencePolicy);
                 });
-
+                
                 services.TryAddSingleton<IUnitOfWorkFactory>(sp =>
                 {
-                    var connectionManager = sp.GetRequiredService<IConnectionManager>();
-                    return new UnitOfWorkFactory(connectionManager);
+                    var unitOfWorkFactory = new UnitOfWorkFactory(sp.GetRequiredService<ITransactionManagerFactory>());
+                    unitOfWorkFactory.ConnectSaveChangesObserver(new LogSaveChangesObserver(sp));
+
+                    return unitOfWorkFactory;
                 });
 
                 services.TryAddSingleton<IOutBoxMessagesProcessor>(sp =>

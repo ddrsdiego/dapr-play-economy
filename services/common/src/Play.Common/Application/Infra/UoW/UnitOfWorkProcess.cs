@@ -3,17 +3,16 @@
 using System;
 using System.Diagnostics;
 using System.Threading.Tasks;
-using Play.Common;
 
 public readonly struct UnitOfWorkProcess
 {
     private readonly Stopwatch _stopwatch;
 
-    public UnitOfWorkProcess(string unitOfWorkContextId, string workId, Func<Task> task)
+    internal UnitOfWorkProcess(string unitOfWorkContextId, string workId, Func<Task> task)
     {
         Method = task;
         UnitOfWorkContextId = unitOfWorkContextId;
-        WorkId = $"{workId}-{GeneratorOperationId.Generate()}";
+        WorkId = workId;
         _stopwatch = Stopwatch.StartNew();
     }
 

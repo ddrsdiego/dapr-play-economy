@@ -13,12 +13,14 @@ public class ConnectionManagerTests
     private DbProviderFactory _providerFactory;
     private IAsyncPolicy _resiliencePolicy;
     private string _connectionString;
+    private ITransactionManagerFactory _transactionManagerFactory;
 
     [SetUp]
     public void Setup()
     {
         _providerFactory = Substitute.For<DbProviderFactory>();
         _resiliencePolicy = Substitute.For<IAsyncPolicy>();
+        _transactionManagerFactory = Substitute.For<ITransactionManagerFactory>();
         _connectionString = "connectionString";
     }
 
@@ -33,7 +35,7 @@ public class ConnectionManagerTests
         _resiliencePolicy.ExecuteAsync(Arg.Any<Func<Task<DbConnection>>>())
             .Returns(_ => _.Arg<Func<Task<DbConnection>>>().Invoke());
 
-        var connectionManager = new ConnectionManager(_providerFactory, _connectionString, _resiliencePolicy);
+        var connectionManager = new ConnectionManager(_providerFactory, _transactionManagerFactory, _connectionString, _resiliencePolicy);
 
         // Act
         var result = await connectionManager.GetOpenConnectionAsync();
@@ -54,7 +56,7 @@ public class ConnectionManagerTests
         _resiliencePolicy.ExecuteAsync(Arg.Any<Func<Task<DbConnection>>>())
             .Returns(_ => _.Arg<Func<Task<DbConnection>>>().Invoke());
 
-        var connectionManager = new ConnectionManager(_providerFactory, _connectionString, _resiliencePolicy);
+        var connectionManager = new ConnectionManager(_providerFactory, _transactionManagerFactory, _connectionString, _resiliencePolicy);
 
         // Act
         var result = await connectionManager.GetOpenConnectionAsync();
@@ -77,7 +79,7 @@ public class ConnectionManagerTests
 
         _providerFactory.CreateConnection().Returns(connection1, connection2);
 
-        var connectionManager = new ConnectionManager(_providerFactory, _connectionString, null);
+        var connectionManager = new ConnectionManager(_providerFactory, _transactionManagerFactory, _connectionString, _resiliencePolicy);
 
         // Act
         var result1 = await connectionManager.GetOpenConnectionAsync();

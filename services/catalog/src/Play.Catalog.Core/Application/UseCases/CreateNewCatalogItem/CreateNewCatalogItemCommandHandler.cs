@@ -40,12 +40,12 @@ public sealed class CreateNewCatalogItemCommandHandler : IRequestHandler<CreateN
         var catalogItemCreated = new CatalogItemCreated(newCatalogItem.Id, newCatalogItem.Descriptor.Name,
             newCatalogItem.Descriptor.Value);
             
-        await using (var uow = await _unitOfWorkFactory.CreateAsync(cancellationToken))
+        await using (var uow = await _unitOfWorkFactory.CreateAsync())
         {
-            uow.AddToContext(async () => await _daprStateEntryRepository.UpsertAsync(catalogItemData, cancellationToken));
-            uow.AddToContext(async () => await _outBoxMessagesRepository.SaveAsync(DaprParameters.PubSubName, eventName, topicName, catalogItemCreated, cancellationToken));
+            await uow.AddToContextAsync(async () => await _daprStateEntryRepository.UpsertAsync(catalogItemData, cancellationToken));
+            await uow.AddToContextAsync(async () => await _outBoxMessagesRepository.SaveAsync(DaprParameters.PubSubName, eventName, topicName, catalogItemCreated, cancellationToken));
                 
-            await uow.SaveChangesAsync();
+            await uow.SaveChangesAsync(cancellationToken);
         }
 
         var responseContent = new CreateNewCatalogItemResponse(newCatalogItem.Id,

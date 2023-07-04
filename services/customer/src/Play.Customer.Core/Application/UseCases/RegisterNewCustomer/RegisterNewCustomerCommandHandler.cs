@@ -42,17 +42,17 @@ internal sealed class RegisterNewCustomerCommandHandler : IRequestHandler<Regist
 
         var newCustomer = new Customer(command.Document, command.Name, command.Email);
         
-        await using var uow = await _unitOfWorkFactory.CreateAsync(cancellationToken);
+        await using var uow = await _unitOfWorkFactory.CreateAsync();
 
-        uow.AddToContext(async () => await _customerRepository.SaveAsync(newCustomer, cancellationToken));
+        await uow.AddToContextAsync(async () => await _customerRepository.SaveAsync(newCustomer, cancellationToken));
         
         foreach (var notification in newCustomer.DomainEvents)
         {
             var @event = (NewCustomerCreated) notification;
-            uow.AddToContext(async () => await _outBoxMessagesRepository.SaveAsync(PubSubName, EventName, TopicName, @event, cancellationToken));
+            await uow.AddToContextAsync(async () => await _outBoxMessagesRepository.SaveAsync(PubSubName, EventName, TopicName, @event, cancellationToken));
         }
 
-        await uow.SaveChangesAsync();
+        await uow.SaveChangesAsync(cancellationToken);
         
         var responseContent = new RegisterNewCustomerResponse(newCustomer.Identification.Id, newCustomer.Name,
             newCustomer.Email.Value,

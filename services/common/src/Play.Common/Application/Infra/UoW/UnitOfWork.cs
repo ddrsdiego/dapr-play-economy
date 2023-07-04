@@ -4,17 +4,16 @@ using System;
 using System.Collections.Concurrent;
 using System.Threading;
 using System.Threading.Tasks;
-using Observers.EnqueueWork.Observables;
-using Observers.SaveChanges.Observables;
-using Repositories;
+using Play.Common;
+using Play.Common.Application.Infra.Repositories;
+using Play.Common.Application.Infra.UoW.Observers.EnqueueWork.Observables;
+using Play.Common.Application.Infra.UoW.Observers.SaveChanges.Observables;
 
 public interface IUnitOfWork :
     IDisposable,
     IAsyncDisposable
 {
-    IConnectionManager ConnectionManager { get; }
-
-    Task BeginTransactionAsync();
+    ValueTask BeginTransactionAsync();
 
     Task SaveChangesAsync(CancellationToken cancellationToken = default);
 
@@ -22,9 +21,9 @@ public interface IUnitOfWork :
 
     void AddToContext(Func<Task> method);
 
-    Task AddToContextAsync(Func<Task> method);
+    ValueTask AddToContextAsync(Func<Task> method);
 
-    Task AddToContextAsync(string workId, Func<Task> method);
+    ValueTask AddToContextAsync(string workId, Func<Task> method);
 
     void ConnectEnqueueWorkObserver(EnqueueWorkObservable enqueueWorkObservable);
 
@@ -33,49 +32,41 @@ public interface IUnitOfWork :
 
 public abstract class UnitOfWork : IUnitOfWork
 {
-    private bool _committed;
     private bool _disposed;
     private bool _newTransaction;
 
     private readonly SemaphoreSlim _commitLock;
-    private readonly CancellationToken _cancellationToken;
+    private readonly ITransactionManagerFactory _transactionFactory;
+
     private EnqueueWorkObservable _enqueueWorkObservable;
     private SaveChangesObservable _saveChangesObservable;
 
     private ConcurrentQueue<UnitOfWorkProcess> _methods;
 
-    protected UnitOfWork(string unitOfWorkContextId, IConnectionManager connectionManager, CancellationToken cancellationToken = default)
+    protected UnitOfWork(string unitOfWorkContextId, ITransactionManagerFactory transactionFactory)
     {
-        ConnectionManager = connectionManager;
-        UnitOfWorkContextId = $"{unitOfWorkContextId}-{GeneratorOperationId.Generate()}";
+        UnitOfWorkContextId = unitOfWorkContextId;
 
-        _cancellationToken = cancellationToken;
+        _transactionFactory = transactionFactory;
         _methods = new ConcurrentQueue<UnitOfWorkProcess>();
         _commitLock = new SemaphoreSlim(1, 1);
     }
 
-    public string UnitOfWorkContextId { get; }
-
-    public IConnectionManager ConnectionManager { get; }
+    private string UnitOfWorkContextId { get; }
 
     public int QueueLength => _methods.Count;
 
-    public virtual async Task BeginTransactionAsync()
+    public virtual async ValueTask BeginTransactionAsync()
     {
         try
         {
-            _cancellationToken.ThrowIfCancellationRequested();
-
-            await ConnectionManager.BeginTransactionAsync(_cancellationToken);
-
-            _committed = false;
             _newTransaction = true;
         }
-        catch (OperationCanceledException e)
+        catch (OperationCanceledException)
         {
             await DisposeAsync();
         }
-        catch (Exception e)
+        catch (Exception)
         {
             await DisposeAsync();
         }
@@ -96,6 +87,7 @@ public abstract class UnitOfWork : IUnitOfWork
                 if (!_newTransaction)
                     throw new InvalidOperationException("There is no transaction in progress.");
 
+                using var transactionManager = _transactionFactory.CreateTransactionManager();
                 while (_methods.TryDequeue(out var process))
                 {
                     try
@@ -108,47 +100,32 @@ public abstract class UnitOfWork : IUnitOfWork
                     }
                     catch (Exception e)
                     {
+                        transactionManager.Rollback();
+
                         await _saveChangesObservable.OnErrorProcess(process, e);
                         throw;
                     }
                 }
-
-                await CommitAsync();
-                _newTransaction = false;
             }
             finally
             {
                 _commitLock.Release();
             }
         }
-        catch (OperationCanceledException e)
+        catch (OperationCanceledException)
         {
             await DisposeAsync();
             throw;
         }
-        catch (InvalidOperationException e)
+        catch (InvalidOperationException)
         {
             await DisposeAsync();
             throw;
         }
-        catch (Exception e)
+        catch (Exception)
         {
             await DisposeAsync();
             throw;
-        }
-    }
-
-    private async Task CommitAsync()
-    {
-        if (!_committed)
-        {
-            if (ConnectionManager.TransactionManager == null)
-            {
-                throw new InvalidOperationException("There is no transaction in progress.");
-            }
-
-            await ConnectionManager.TransactionManager.CommitAsync(_cancellationToken);
-            _committed = true;
         }
     }
 
@@ -159,9 +136,9 @@ public abstract class UnitOfWork : IUnitOfWork
         _methods.Enqueue(new UnitOfWorkProcess(UnitOfWorkContextId, GeneratorOperationId.Generate(), method));
     }
 
-    public Task AddToContextAsync(Func<Task> method) => AddToContextAsync(GeneratorOperationId.Generate(), method);
+    public ValueTask AddToContextAsync(Func<Task> method) => AddToContextAsync(GeneratorOperationId.Generate(), method);
 
-    public async Task AddToContextAsync(string workId, Func<Task> method)
+    public async ValueTask AddToContextAsync(string workId, Func<Task> method)
     {
         if (method == null) throw new ArgumentNullException(nameof(method));
 
@@ -180,10 +157,8 @@ public abstract class UnitOfWork : IUnitOfWork
     {
         if (_disposed) return;
 
-        ConnectionManager?.TransactionManager?.Dispose();
-        await ConnectionManager?.CloseAsync(_cancellationToken)!;
-
         Dispose();
+        await Task.CompletedTask;
     }
 
     public void Dispose()
@@ -199,7 +174,6 @@ public abstract class UnitOfWork : IUnitOfWork
         if (disposing)
         {
             _methods = null;
-            ConnectionManager?.TransactionManager?.Dispose();
         }
 
         _disposed = true;

@@ -2,11 +2,9 @@
 
 using System;
 using System.Data.Common;
-using System.Threading;
 using Npgsql;
-using Play.Common;
-using Play.Common.Application.Infra.Repositories;
 using Polly;
+using Repositories;
 
 public sealed class UnitOfWorkPostgres : UnitOfWork
 {
@@ -25,19 +23,17 @@ public sealed class UnitOfWorkPostgres : UnitOfWork
             });
     }
 
-    private UnitOfWorkPostgres(string connectionString, CancellationToken cancellationToken)
-        : base(GeneratorOperationId.Generate(), new ConnectionManager(NpgsqlFactory.Instance, connectionString, ResiliencePolicy), cancellationToken)
+    private UnitOfWorkPostgres(ITransactionManagerFactory transactionFactory)
+        : base(GeneratorOperationId.Generate(), transactionFactory)
     {
     }
 
-    private UnitOfWorkPostgres(string unitOfWorkContextId, string connectionString, CancellationToken cancellationToken)
-        : base(unitOfWorkContextId, new ConnectionManager(NpgsqlFactory.Instance, connectionString, ResiliencePolicy), cancellationToken)
+    private UnitOfWorkPostgres(string unitOfWorkContextId, ITransactionManagerFactory transactionManagerFactory)
+        : base(unitOfWorkContextId, transactionManagerFactory)
     {
     }
 
-    public static IUnitOfWork Create(IConnectionManager connectionManager, CancellationToken cancellationToken) =>
-        new UnitOfWorkPostgres(Guid.NewGuid().ToString(), connectionManager.ConnectionString, cancellationToken);
+    public static IUnitOfWork Create(ITransactionManagerFactory transactionManagerFactory) => new UnitOfWorkPostgres(Guid.NewGuid().ToString(), transactionManagerFactory);
 
-    public static IUnitOfWork Create(string unitOfWorkContextId, IConnectionManager connectionManager, CancellationToken cancellationToken) =>
-        new UnitOfWorkPostgres(unitOfWorkContextId, connectionManager.ConnectionString, cancellationToken);
+    public static IUnitOfWork Create(string unitOfWorkContextId, ITransactionManagerFactory transactionManagerFactory) => new UnitOfWorkPostgres(unitOfWorkContextId, transactionManagerFactory);
 }
