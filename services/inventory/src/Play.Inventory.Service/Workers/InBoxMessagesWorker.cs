@@ -11,6 +11,8 @@ using Subscribers.Messages;
 
 public sealed class InBoxMessagesWorker : BackgroundService
 {
+    private readonly IInBoxMessageProcessor _inBoxMessageProcessor;
+
     private const string CustomerUpdatedChannelId = "play-customer.customer-updated-channel";
     private const string CatalogItemUpdatedChannelId = "play-catalog.catalog-item-updated-channel";
     private const string CatalogItemCreatedChannelId = "play-catalog.catalog-item-created-channel";
@@ -18,12 +20,10 @@ public sealed class InBoxMessagesWorker : BackgroundService
     private readonly IProcessorChannel<InBoxMessage> _customerNameUpdatedProcessorChannel;
     private readonly IProcessorChannel<InBoxMessage> _catalogItemCreatedProcessorChannel;
     private readonly IProcessorChannel<InBoxMessage> _catalogItemUpdatedProcessorChannel;
-    private readonly IInBoxMessagesProcessor _inBoxMessagesProcessor;
 
-    public InBoxMessagesWorker(IServiceScopeFactory serviceScopeFactory, IInBoxMessagesProcessor inBoxMessagesProcessor)
+    public InBoxMessagesWorker(IServiceScopeFactory serviceScopeFactory, IInBoxMessageProcessor inBoxMessageProcessor)
     {
-        _inBoxMessagesProcessor = inBoxMessagesProcessor;
-
+        _inBoxMessageProcessor = inBoxMessageProcessor;
         _customerNameUpdatedProcessorChannel = ProcessorChannel<InBoxMessage>.Create(CustomerUpdatedChannelId, 200, 100, message => message.ExecuteCustomerNameUpdatedAsync(serviceScopeFactory));
         _catalogItemUpdatedProcessorChannel = ProcessorChannel<InBoxMessage>.Create(CatalogItemUpdatedChannelId, 200, 100, message => message.ExecuteCatalogItemUpdatedAsync(serviceScopeFactory));
         _catalogItemCreatedProcessorChannel = ProcessorChannel<InBoxMessage>.Create(CatalogItemCreatedChannelId, 200, 100, message => message.ExecuteCatalogItemCreatedAsync(serviceScopeFactory));
@@ -31,7 +31,7 @@ public sealed class InBoxMessagesWorker : BackgroundService
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        await foreach (var inBoxMessage in _inBoxMessagesProcessor.GetUnprocessedMessagesAsync(stoppingToken))
+        await foreach (var inBoxMessage in _inBoxMessageProcessor.GetMessagesPendingAsync(stoppingToken))
         {
             switch (inBoxMessage.EventName)
             {

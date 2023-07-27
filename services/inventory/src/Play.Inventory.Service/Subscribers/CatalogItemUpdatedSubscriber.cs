@@ -46,8 +46,9 @@ internal static class CatalogItemUpdatedSubscriber
 
             try
             {
-                var inBoxMessagesRepository = context.RequestServices.GetRequiredService<IInBoxMessagesRepository>();
-                await inBoxMessagesRepository.SaveAsync(messageEnvelopeResult.Value, cancellationToken);
+                //TODO: Precisa verificar se o item existe antes de atualizar
+                // var inBoxMessagesRepository = context.RequestServices.GetRequiredService<IInBoxMessagesRepository>();
+                // await inBoxMessagesRepository.SaveAsync(messageEnvelopeResult.Value, cancellationToken);
 
                 context.Response.StatusCode = StatusCodes.Status200OK;
                 await context.Response.WriteAsJsonAsync(new OkResult(), cancellationToken: context.RequestAborted);

@@ -27,8 +27,9 @@ internal static class CustomerUpdatedSubscriber
 
             try
             {
-                var inBoxMessagesRepository = context.RequestServices.GetRequiredService<IInBoxMessagesRepository>();
-                await inBoxMessagesRepository.SaveAsync(messageEnvelopeResult.Value, cancellationToken);
+                //TODO: Implement this
+                // var inBoxMessagesRepository = context.RequestServices.GetRequiredService<IInBoxMessagesRepository>();
+                // await inBoxMessagesRepository.SaveAsync(messageEnvelopeResult.Value, cancellationToken);
 
                 context.Response.StatusCode = StatusCodes.Status200OK;
                 await context.Response.WriteAsJsonAsync(new OkResult(), cancellationToken: context.RequestAborted);

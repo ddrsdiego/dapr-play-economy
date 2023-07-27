@@ -12,7 +12,6 @@ using Common.Application.UseCase;
 using Dapr.Client;
 using Domain.AggregateModel.CustomerAggregate;
 using Infra.Repositories;
-using LogCo.Delivery.GestaoEntregas.Itinerary.Data;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -58,17 +57,7 @@ internal static class RepositoriesContainer
             return unitOfWorkFactory;
         });
 
-        services.TryAddSingleton<IInBoxMessagesProcessor>(sp =>
-            new InBoxMessagesProcessor(new BoxMessagesProcessorConfig
-                {
-                    PubSubName = "play-customer-service-pubsub",
-                    LockStoreName = "play-customer-service-lock-store",
-                    ProcessingIntervalInSeconds = 15
-                },
-                sp.GetRequiredService<IInBoxMessagesRepository>(),
-                sp.GetRequiredService<IUnitOfWorkFactory>(),
-                sp.GetRequiredService<DaprClient>()));
-
+        services.AddMessaging(configuration);
         services.TryAddSingleton<IOutBoxMessagesProcessor>(sp =>
             new OutBoxMessagesProcessor(new BoxMessagesProcessorConfig
                 {

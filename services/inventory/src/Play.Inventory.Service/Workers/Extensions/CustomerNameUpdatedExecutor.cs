@@ -14,22 +14,12 @@ internal static class CustomerNameUpdatedExecutor
     {
         await using var scope = serviceScopeFactory.CreateAsyncScope();
 
-        var mediator = scope.ServiceProvider.GetRequiredService<IMediator>();
-        var inBoxMessagesProcessor = scope.ServiceProvider.GetRequiredService<IInBoxMessagesProcessor>();
-        
-        try
-        {
-            var customerNameUpdatedResult = message.AdapterFromInBoxMessage<CustomerNameUpdated>();
+        var customerNameUpdatedResult = message.AdapterFromInBoxMessage<CustomerNameUpdated>();
 
-            var response = await mediator.Send(customerNameUpdatedResult.Value.ToCommand());
-            if (response.IsSuccess)
-                await inBoxMessagesProcessor.MarkMessageAsProcessedAsync(message, CancellationToken.None);
-            else
-                await inBoxMessagesProcessor.MarkMessageAsFailedAsync(message, CancellationToken.None);
-        }
-        catch (Exception e)
-        {
-            await inBoxMessagesProcessor.MarkMessageAsFailedAsync(message, CancellationToken.None);
-        }
+        var mediator = scope.ServiceProvider.GetRequiredService<IMediator>();
+        var inBoxMessagesProcessor = scope.ServiceProvider.GetRequiredService<IInBoxMessageProcessor>();
+
+        await inBoxMessagesProcessor.ExecuteAsync<CustomerNameUpdated>(message, async (_, _) =>
+            await mediator.Send(customerNameUpdatedResult.Value.ToCommand()), CancellationToken.None);
     }
 }

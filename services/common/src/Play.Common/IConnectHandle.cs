@@ -1,4 +1,4 @@
-namespace LogCo.Delivery.GestaoEntregas.RouterAdapter.CrossCutting.Commons;
+namespace Play.Common;
 
 using System;
 

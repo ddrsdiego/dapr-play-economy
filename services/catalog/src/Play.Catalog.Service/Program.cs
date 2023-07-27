@@ -15,7 +15,6 @@ using Core.Application.Helpers;
 using Core.Application.IoC;
 using Core.Application.UseCases.CreateNewCatalogItem;
 using Dapr.Client;
-using LogCo.Delivery.GestaoEntregas.Itinerary.Data;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -85,7 +84,7 @@ public abstract class Program
                         sp.GetRequiredService<IUnitOfWorkFactory>(),
                         sp.GetRequiredService<DaprClient>()));
 
-                services.TryAddSingleton<IInBoxMessagesRepository>(sp => new InBoxMessagesRepository(sp.GetRequiredService<IConnectionManager>()));
+                services.AddMessaging(context.Configuration);
                 services.TryAddSingleton<IOutBoxMessagesRepository>(sp => new OutBoxMessagesRepository(sp.GetRequiredService<IConnectionManager>()));
             });
 }

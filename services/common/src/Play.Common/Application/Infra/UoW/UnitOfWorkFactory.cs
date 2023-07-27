@@ -1,7 +1,6 @@
 ﻿namespace Play.Common.Application.Infra.UoW;
 
 using System.Threading.Tasks;
-using LogCo.Delivery.GestaoEntregas.RouterAdapter.CrossCutting.Commons;
 using Observers.EnqueueWork;
 using Observers.EnqueueWork.Observables;
 using Observers.SaveChanges;

@@ -8,6 +8,8 @@ using Microsoft.Extensions.Logging;
 public static class LogFields
 {
     public const string LogType = "{log}";
+    public const string Key = "{Key}";
+    public const string SubKey = "{SubKey}";    
     public const string StepProcess = "{step-process}";
     public const string OutBoxRequest = "{out-box-request}";
     public const string RouterLogContextId = "{router-log-context-id}";
@@ -15,6 +17,7 @@ public static class LogFields
     public const string OutBoxMessageLogContext = "{@OutBoxMessageLogContext}";
     public const string ItineraryFromRouterLogContext = "{@ItineraryFromRouterLogContext}";
     public const string UnitOfWorkProcessLogContext = "{@UnitOfWorkProcessLogContext}";
+    public const string InBoxMessageLogContext = "{@InBoxMessageLogContext}";
 }
 
 internal class UnitOfWorkProcessLogContext

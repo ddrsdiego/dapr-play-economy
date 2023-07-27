@@ -2,7 +2,6 @@
 
 using System;
 using System.Threading.Tasks;
-using LogCo.Delivery.GestaoEntregas.RouterAdapter.CrossCutting.Commons;
 
 public class SaveChangesObservable :
     Connectable<ISaveChangesObserver>, ISaveChangesObserver

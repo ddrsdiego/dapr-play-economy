@@ -5,47 +5,90 @@ using System.Transactions;
 
 public interface ITransactionManager : IDisposable
 {
+    bool IsDisposed { get; }
+
+    bool IsCommitted { get; }
+
     void Rollback();
 }
 
 internal sealed class TransactionManager : ITransactionManager
 {
-    private bool _disposed;
-    private const int MaximumTimeoutInSeconds = 1;
+    private readonly object _lockCommit = new();
+
     private TransactionScope _transactionScope;
 
-    public TransactionManager()
+    internal TransactionManager() => InitTransaction();
+
+    private void InitTransaction()
     {
-        var options = new TransactionOptions { IsolationLevel = IsolationLevel.ReadCommitted };
+        var options = new TransactionOptions
+        {
+            IsolationLevel = IsolationLevel.ReadCommitted,
+        };
 
         _transactionScope = new TransactionScope(TransactionScopeOption.Required, options, TransactionScopeAsyncFlowOption.Enabled);
-        _disposed = false;
+        IsDisposed = false;
+        IsCommitted = false;
     }
+
+    public bool IsDisposed { get; private set; }
+
+    public bool IsCommitted { get; private set; }
 
     public void Dispose()
     {
-        Dispose(true);
+        lock (_lockCommit)
+        {
+            Dispose(true);
+        }
+
         GC.SuppressFinalize(this);
     }
 
-    public void Rollback()
+    public void Rollback() => DisposeScope();
+
+    private void DisposeScope()
     {
-        _transactionScope?.Dispose();
-        _transactionScope = null;
+        if (_transactionScope == null)
+            return;
+
+        try
+        {
+            _transactionScope?.Dispose();
+        }
+        catch (Exception e)
+        {
+            throw new TransactionManagementException("Error on disposing transaction scope", e);
+        }
+        finally
+        {
+            _transactionScope = null;
+        }
     }
 
     private void Dispose(bool disposing)
     {
-        if (_disposed) return;
+        if (IsDisposed) return;
 
         if (disposing)
         {
-            _transactionScope?.Complete();
-            _transactionScope?.Dispose();
-            _transactionScope = null;
+            try
+            {
+                _transactionScope?.Complete();
+                IsCommitted = true;
+            }
+            catch (Exception e) when (e is TransactionAbortedException)
+            {
+                throw new TransactionManagementException("Error on completing or disposing transaction scope", e);
+            }
+            finally
+            {
+                DisposeScope();
+            }
         }
 
-        _disposed = true;
+        IsDisposed = true;
     }
 
     ~TransactionManager()

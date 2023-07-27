@@ -11,8 +11,6 @@ using System.Text.Json;
 /// </summary>
 public struct ResponseContent
 {
-    private static readonly SerializerOptions SerializerOptions;
-
     private readonly object _syncSerializeString;
     private readonly object _syncSerializeUtf8Bytes;
     private Type InputType { get; }
@@ -21,24 +19,14 @@ public struct ResponseContent
 
     private JsonSerializerOptions JsonSerializerOptions { get; }
 
-    private ResponseContent(byte[] contentAsJsonByte, string contentAsJsonString, Type inputType,
-        SerializerOptions serializerOptions)
+    private ResponseContent(byte[] contentAsJsonByte, string contentAsJsonString, Type? inputType, JsonSerializerOptions serializerOptions)
     {
         _syncSerializeString = new object();
         _syncSerializeUtf8Bytes = new object();
         InputType = inputType;
         ContentAsJsonUtf8Bytes = contentAsJsonByte;
         ContentAsJsonString = contentAsJsonString;
-        JsonSerializerOptions = serializerOptions.GetOptions();
-    }
-
-    static ResponseContent()
-    {
-        SerializerOptions = new SerializerOptions();
-        SerializerOptions
-            .IgnoreNullValues(true)
-            .PropertyNameCaseInsensitive(true)
-            .PropertyNamingPolicy(JsonNamingPolicy.CamelCase);
+        JsonSerializerOptions = serializerOptions;
     }
 
     /// <summary>
@@ -47,11 +35,7 @@ public struct ResponseContent
     /// <typeparam name="TContent"></typeparam>
     /// <param name="contentData"></param>
     /// <returns></returns>
-    public static ResponseContent Create<TContent>(TContent contentData)
-    {
-        var contentAsUtf8Bytes = JsonSerializer.SerializeToUtf8Bytes(contentData, SerializerOptions.GetOptions());
-        return new ResponseContent(contentAsUtf8Bytes, string.Empty, contentData.GetType(), SerializerOptions);
-    }
+    public static ResponseContent Create<TContent>(TContent contentData) => Create(contentData, SerializerOptions.DefaultJsonSerializerOptions);
 
     /// <summary>
     /// Encapsulates the content by passing the content type through generics
@@ -60,13 +44,10 @@ public struct ResponseContent
     /// <param name="contentData"></param>
     /// <param name="serializerOptions"></param>
     /// <returns></returns>
-    public static ResponseContent Create<TContent>(TContent contentData, SerializerOptions serializerOptions = null)
+    public static ResponseContent Create<TContent>(TContent contentData, JsonSerializerOptions serializerOptions)
     {
-        var contentAsUtf8Bytes = serializerOptions == null
-            ? JsonSerializer.SerializeToUtf8Bytes(contentData)
-            : JsonSerializer.SerializeToUtf8Bytes(contentData, serializerOptions.GetOptions());
-
-        return new ResponseContent(contentAsUtf8Bytes, string.Empty, contentData.GetType(), serializerOptions);
+        var contentAsUtf8Bytes = Serializer.ToUtf8Bytes(ref contentData, serializerOptions);
+        return new ResponseContent(contentAsUtf8Bytes, string.Empty, contentData?.GetType(), SerializerOptions.DefaultJsonSerializerOptions);
     }
 
     /// <summary>
@@ -80,7 +61,7 @@ public struct ResponseContent
         if (string.IsNullOrEmpty(contentData))
             throw new ArgumentNullException(nameof(contentData));
 
-        return new ResponseContent(null, contentData, inputType, SerializerOptions);
+        return new ResponseContent(null, contentData, inputType, SerializerOptions.DefaultJsonSerializerOptions);
     }
 
     /// <summary>
@@ -89,7 +70,7 @@ public struct ResponseContent
     /// <param name="contentData"></param>
     /// <param name="inputType"></param>
     /// <returns></returns>
-    public static ResponseContent Create(byte[] contentData, Type inputType)
+    public static ResponseContent Create(byte[] contentData, Type? inputType)
     {
         if (contentData is null || contentData.Equals(default(byte[])))
             throw new ArgumentNullException(nameof(contentData));
@@ -97,7 +78,7 @@ public struct ResponseContent
         if (inputType is null)
             throw new ArgumentNullException(nameof(inputType));
 
-        return new ResponseContent(contentData, string.Empty, inputType, SerializerOptions);
+        return new ResponseContent(contentData, string.Empty, inputType, SerializerOptions.DefaultJsonSerializerOptions);
     }
 
     /// <summary>
@@ -105,17 +86,24 @@ public struct ResponseContent
     /// </summary>
     /// <typeparam name="TContent"></typeparam>
     /// <returns></returns>
-    public TContent GetRaw<TContent>() => (TContent) GetRaw(typeof(TContent));
+    public TContent GetRaw<TContent>() => (TContent)GetRaw(typeof(TContent));
 
     /// <summary>
     /// Obtains the deserialized content using the type passed by parameter
     /// </summary>
     /// <param name="inputType"></param>
     /// <returns></returns>
-    public object GetRaw(Type inputType)
+    public object GetRaw(Type inputType) => GetRaw(inputType, JsonSerializerOptions);
+
+    /// <summary>
+    /// Obtains the deserialized content using the type passed by parameter
+    /// </summary>
+    /// <param name="inputType"></param>
+    /// <param name="jsonSerializerOptions"></param>
+    /// <returns></returns>
+    public object GetRaw(Type inputType, JsonSerializerOptions jsonSerializerOptions)
     {
-        var reader = new Utf8JsonReader(ValueAsJsonUtf8Bytes);
-        return JsonSerializer.Deserialize(ref reader, inputType, JsonSerializerOptions);
+        return Serializer.FromJson(ValueAsJsonUtf8Bytes, inputType, jsonSerializerOptions);
     }
 
     /// <summary>
@@ -129,8 +117,8 @@ public struct ResponseContent
             lock (_syncSerializeUtf8Bytes)
             {
                 if (ContentAsJsonUtf8Bytes.Length > 0) return ContentAsJsonUtf8Bytes.Span;
-
-                var value = JsonSerializer.Deserialize(ValueAsJsonString, InputType, JsonSerializerOptions);
+                
+                var value = Serializer.FromJson(ValueAsJsonString, InputType!, JsonSerializerOptions);
                 ContentAsJsonUtf8Bytes = JsonSerializer.SerializeToUtf8Bytes(value, JsonSerializerOptions);
 
                 return ContentAsJsonUtf8Bytes.Span;
@@ -150,17 +138,21 @@ public struct ResponseContent
             {
                 if (!string.IsNullOrEmpty(ContentAsJsonString)) return ContentAsJsonString;
 
-                ContentAsJsonString = JsonSerializer.Serialize(GetRaw(InputType), InputType, JsonSerializerOptions);
+                ContentAsJsonString = JsonSerializer.Serialize(GetRaw(InputType), InputType!, JsonSerializerOptions);
                 return ContentAsJsonString;
             }
         }
     }
+
+    public bool HasNoValue => !HasValue;
 
     public bool HasValue
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         get => !string.IsNullOrEmpty(ContentAsJsonString) || ContentAsJsonUtf8Bytes.Length > 0;
     }
+
+    public static ResponseContent Empty { get; set; }
 
     /// <summary>
     /// Write in Response.Body using PipeWriter by reference being serialized in UTF8
@@ -179,7 +171,7 @@ public struct ResponseContent
         Span<char> charSpan = stackalloc char[ValueAsJsonUtf8Bytes.Length];
         for (var counter = 0; counter < ValueAsJsonUtf8Bytes.Length; counter++)
         {
-            charSpan[counter] = (char) ValueAsJsonUtf8Bytes[counter];
+            charSpan[counter] = (char)ValueAsJsonUtf8Bytes[counter];
         }
 
         var bytesNeeded = encoder.GetByteCount(charSpan, true);

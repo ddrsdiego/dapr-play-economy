@@ -1,5 +1,6 @@
 ﻿namespace Play.Inventory.Core.Application.IoC;
 
+using Common.Application.Messaging;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using UseCases.CreateCatalogItem;
@@ -15,6 +16,7 @@ public static class PlayInventoryServiceContainer
         services.AddRepositories();
         services.AddOptions(configuration);
         services.AddMediatR(cfg => cfg.RegisterServicesFromAssemblyContaining<CreateCatalogItemCommandHandler>());
+        services.AddMessaging(configuration);
         return services;
     }
 }

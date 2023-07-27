@@ -1,8 +1,7 @@
-namespace LogCo.Delivery.GestaoEntregas.Itinerary.Data;
+namespace Play.Common.Application.Infra.Repositories;
 
 using System.Data.Common;
 using Microsoft.Extensions.Configuration;
-using Play.Common.Application.Infra.Repositories;
 using Polly;
 
 public interface IConnectionManagerFactory

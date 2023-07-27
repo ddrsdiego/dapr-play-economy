@@ -9,19 +9,16 @@ using Subscribers;
 
 internal static class CatalogItemCreatedExecutor
 {
-    public static async Task ExecuteCatalogItemCreatedAsync(this InBoxMessage message, IServiceScopeFactory serviceScopeFactory)
+    public static async Task ExecuteCatalogItemCreatedAsync(this InBoxMessage inBoxMessage, IServiceScopeFactory serviceScopeFactory)
     {
-        var customerNameUpdatedResult = message.AdapterFromInBoxMessage<CatalogItemCreated>();
+        var customerNameUpdatedResult = inBoxMessage.AdapterFromInBoxMessage<CatalogItemCreated>();
 
         await using var scope = serviceScopeFactory.CreateAsyncScope();
 
         var mediator = scope.ServiceProvider.GetRequiredService<IMediator>();
-        var inBoxMessagesProcessor = scope.ServiceProvider.GetRequiredService<IInBoxMessagesProcessor>();
+        var inBoxMessagesProcessor = scope.ServiceProvider.GetRequiredService<IInBoxMessageProcessor>();
 
-        var response = await mediator.Send(customerNameUpdatedResult.Value.ToCommand());
-        if (response.IsSuccess)
-            await inBoxMessagesProcessor.MarkMessageAsProcessedAsync(message, CancellationToken.None);
-        else
-            await inBoxMessagesProcessor.MarkMessageAsFailedAsync(message, CancellationToken.None);
+        await inBoxMessagesProcessor.ExecuteAsync<CatalogItemCreated>(inBoxMessage, async (_, _) =>
+            await mediator.Send(customerNameUpdatedResult.Value.ToCommand()), CancellationToken.None);
     }
 }

@@ -1,8 +1,5 @@
 ﻿namespace Play.Common.Application.Infra.Repositories;
 
-using System.Data.Common;
-using System.Threading;
-using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 
 public sealed class ConnectionStringOptions
@@ -12,15 +9,13 @@ public sealed class ConnectionStringOptions
     
 public abstract class Repository
 {
-    private readonly IConnectionManager _connectionManager;
+    protected readonly IConnectionManagerFactory ConnectionManagerFactory;
 
-    protected Repository(ILogger logger, IConnectionManager connectionManager)
+    protected Repository(ILogger logger, IConnectionManagerFactory connectionManager)
     {
-        _connectionManager = connectionManager;
+        ConnectionManagerFactory = connectionManager;
         Logger = logger;
     }
 
     protected ILogger Logger { get; }
-    
-    protected Task<DbConnection> GetConnection(CancellationToken cancellationToken = default) => _connectionManager.GetOpenConnectionAsync(cancellationToken);
 }
